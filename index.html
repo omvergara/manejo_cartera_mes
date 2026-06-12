@@ -232,9 +232,54 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .ing-lbl{font-size:11px;opacity:.8;margin-bottom:2px}
 .ing-val{font-size:20px;font-weight:700}
 .ing-sep{width:0.5px;background:rgba(255,255,255,.3);height:36px}
+
+/* ── PIN LOCK ─────────────────────────────────────── */
+.pin-overlay{display:none;position:fixed;inset:0;background:var(--ind);z-index:500;flex-direction:column;align-items:center;justify-content:center;padding:32px}
+.pin-overlay.open{display:flex}
+.pin-ttl{font-size:22px;font-weight:700;color:#fff;margin-bottom:6px}
+.pin-sub{font-size:14px;color:rgba(255,255,255,.7);margin-bottom:36px;text-align:center}
+.pin-dots{display:flex;gap:16px;margin-bottom:40px}
+.pin-dot{width:16px;height:16px;border-radius:50%;background:rgba(255,255,255,.3);transition:background .15s}
+.pin-dot.on{background:#fff}
+.pin-pad{display:grid;grid-template-columns:repeat(3,72px);gap:12px}
+.pin-btn{width:72px;height:72px;border-radius:50%;border:none;background:rgba(255,255,255,.15);color:#fff;font-size:24px;font-weight:500;cursor:pointer;transition:background .1s;display:flex;align-items:center;justify-content:center}
+.pin-btn:active{background:rgba(255,255,255,.35)}
+.pin-btn.del{font-size:20px}
+.pin-btn.empty{background:none;cursor:default}
+.pin-error{color:#ff6b6b;font-size:13px;margin-top:16px;min-height:18px;text-align:center}
+.pin-forgot{color:rgba(255,255,255,.6);font-size:12px;margin-top:20px;cursor:pointer;text-decoration:underline}
 </style>
 </head>
 <body>
+
+
+<!-- PIN LOCK -->
+<div class="pin-overlay" id="pin-screen">
+  <div class="pin-ttl">Cartera</div>
+  <div class="pin-sub" id="pin-sub">Ingresa tu PIN</div>
+  <div class="pin-dots">
+    <div class="pin-dot" id="pd0"></div>
+    <div class="pin-dot" id="pd1"></div>
+    <div class="pin-dot" id="pd2"></div>
+    <div class="pin-dot" id="pd3"></div>
+  </div>
+  <div class="pin-pad">
+    <button class="pin-btn" onclick="pinKey('1')">1</button>
+    <button class="pin-btn" onclick="pinKey('2')">2</button>
+    <button class="pin-btn" onclick="pinKey('3')">3</button>
+    <button class="pin-btn" onclick="pinKey('4')">4</button>
+    <button class="pin-btn" onclick="pinKey('5')">5</button>
+    <button class="pin-btn" onclick="pinKey('6')">6</button>
+    <button class="pin-btn" onclick="pinKey('7')">7</button>
+    <button class="pin-btn" onclick="pinKey('8')">8</button>
+    <button class="pin-btn" onclick="pinKey('9')">9</button>
+    <button class="pin-btn empty"></button>
+    <button class="pin-btn" onclick="pinKey('0')">0</button>
+    <button class="pin-btn del" onclick="pinDel()">&#9003;</button>
+  </div>
+  <div class="pin-error" id="pin-error"></div>
+  <div class="pin-forgot" id="pin-forgot" onclick="pinForgot()" style="display:none">¿Olvidaste el PIN? Importar respaldo</div>
+</div>
 
 <!-- ONBOARDING -->
 <div class="onb-overlay" id="onboarding">
@@ -273,8 +318,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
       </div>
     </div>
 
-    <label>⛽ Gasolina estimada mensual (0 si no aplica)</label>
-    <input type="number" id="onb-gas" placeholder="Ej: 380000" inputmode="numeric">
+
 
     <button class="bfull" style="margin-top:24px" onclick="finishOnboarding()">Empezar →</button>
     <div style="text-align:center;margin-top:16px">
@@ -360,8 +404,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
         <div><label style="margin-top:0">Día 2do pago</label><input type="number" id="cfg-q2" inputmode="numeric" min="1" max="31" placeholder="30"></div>
       </div>
     </div>
-    <label>⛽ Gasolina estimada mensual</label>
-    <input type="number" id="cfg-gas" inputmode="numeric">
+
     <div class="mbtns"><button class="bcancel" onclick="closeOv('ov-config')">Cancelar</button><button class="bsave" onclick="saveCfg()">Guardar</button></div>
   </div>
 </div>
@@ -422,6 +465,7 @@ let editIngId=null;
 function openAddIngreso(){editIngId=null;document.getElementById('oing-t').textContent='Ingreso extra';document.getElementById('oing-nom').value='';document.getElementById('oing-mnt').value='';openOv('ov-ingreso');setTimeout(()=>document.getElementById('oing-nom').focus(),150);}
 function openEditIngreso(id){const it=gInc().find(x=>x.id===id);if(!it)return;editIngId=id;document.getElementById('oing-t').textContent='Editar ingreso';document.getElementById('oing-nom').value=it.desc;document.getElementById('oing-mnt').value=it.monto;openOv('ov-ingreso');}
 function saveIngreso(){const desc=document.getElementById('oing-nom').value.trim();const monto=parseInt(document.getElementById('oing-mnt').value)||0;if(!desc||!monto)return;const inc=gInc();if(editIngId){const it=inc.find(x=>x.id===editIngId);if(it){it.desc=desc;it.monto=monto;}}else inc.push({id:'inc_'+Date.now(),desc,monto});sInc(inc);closeOv('ov-ingreso');renderAll();}
+function delIngreso(btn){const id=btn.dataset.id;const name=btn.dataset.name;confDelIngreso(id,name);}
 function confDelIngreso(id,desc){showConfirm(`¿Eliminar "${desc}"?`,'Se quitará de los ingresos de este mes.',()=>{sInc(gInc().filter(x=>x.id!==id));renderAll();});}
 
 const ICOS={arriendo:'🏠',renta:'🏠',servicios:'💡',comida:'🍽️',fna:'🏦',celular:'📱',tarjeta:'💳',seguro:'🛡️',gasolina:'⛽',ahorro:'💰',cadena:'🔗',mercado:'🛒',prestamo:'💵',internet:'🌐',gym:'🏋️',colegio:'🎒',universidad:'🎓'};
@@ -479,9 +523,8 @@ function checkOnboarding(){if(!gCfgApp()){document.getElementById('onboarding').
 function finishOnboarding(){
   const nombre=document.getElementById('onb-nombre').value.trim();
   const neto=parseInt(document.getElementById('onb-neto').value)||0;
-  const gas=parseInt(document.getElementById('onb-gas').value)||0;
   if(!neto){alert('Ingresa tu salario neto.');return;}
-  const cfg={nombre,neto,gasolina:gas,tipoNomina:_onbTipo};
+  const cfg={nombre,neto,tipoNomina:_onbTipo};
   if(_onbTipo==='mensual'){
     cfg.nominaDia=parseInt(document.getElementById('onb-dia').value)||25;
   } else {
@@ -539,7 +582,7 @@ function goTo(s){curScreen=s;document.querySelectorAll('.nb').forEach(b=>b.class
 function calcT(){
   const d=gD();let tot=0,paid=0,ah=0;
   d.gastos.forEach(g=>{if(g.ahorro)ah+=g.amount;else tot+=g.amount;if(g.paid)paid+=g.amount;});
-  const tc=gTc();if(tc.cuota>0&&!d.gastos.find(g=>g.id==='tc_auto'))tot+=tc.cuota;
+
   const extInc=totalIngresos();
   return{tot,paid,pending:(tot+ah)-paid,libre:(NETO()+extInc)-(tot+ah),ah,tc:tot+ah,extInc};
 }
@@ -629,15 +672,12 @@ function rInicio(){
 function rGastos(){
   const data=gD();const tc=gTc();
   let allGastos=[...data.gastos];
-  if(tc.cuota>0&&!allGastos.find(g=>g.id==='tc_auto'))allGastos.push({id:'tc_auto',name:'Cuota tarjeta',amount:tc.cuota,cat:'Deuda',paid:false,_autoTC:true});
-  const gas=GASOLINA();
-  if(gas>0&&!allGastos.find(g=>g.id==='gas_auto'))allGastos.push({id:'gas_auto',name:'Gasolina',amount:gas,cat:'Transporte',paid:false,_autoGas:true});
   let gs=allGastos.filter(g=>!g.ahorro);let as=allGastos.filter(g=>g.ahorro);
   if(sortByMonto){gs=[...gs].sort((a,b)=>b.amount-a.amount);as=[...as].sort((a,b)=>b.amount-a.amount);}
   let tG=0,pG=0;gs.forEach(g=>{tG+=g.amount;if(g.paid)pG+=g.amount;});
   const ingresos=gInc();const totalInc=ingresos.reduce((s,i)=>s+i.monto,0);
-  const row=g=>`<div class="grow"><button class="chk ${g.paid?'on':''}" onclick="tPaid('${g.id}')"></button><div class="gico" style="background:${gBg(g.name)}">${catIco(g.cat)}</div><div class="ginf" onclick="${g._autoTC||g._autoGas?'':'openEdit(\''+g.id+'\')'}"><div class="gnm ${g.paid?'done':''}">${g.name}${g._autoTC||g._autoGas?'<span style="font-size:10px;margin-left:4px;color:var(--t3)">(auto)</span>':''}</div><div class="gsb">${g.cat||''}${g.anticipado?'<span class="ant-badge">⚡ anticipado</span>':''}</div></div><div class="gamt ${g.paid?'done':''}" onclick="${g._autoTC||g._autoGas?'':'openEdit(\''+g.id+'\')'}">${fmt(g.amount)}</div>${g._autoTC||g._autoGas?'<span style="width:28px"></span>':`<button class="del" onclick="confDel('${g.id}','${g.name.replace(/'/g,"\\'").replace(/"/g,'&quot;')}')">×</button>`}</div>`;
-  const incRow=i=>`<div class="inc-row"><div class="inc-ico">💵</div><div class="inc-inf" onclick="openEditIngreso('${i.id}')"><div class="inc-nm">${i.desc}</div><div class="inc-sb">Toca para editar</div></div><div class="inc-amt">${fmt(i.monto)}</div><button class="del" onclick="confDelIngreso('${i.id}','${i.desc.replace(/'/g,"\\'").replace(/"/g,'&quot;')}')">×</button></div>`;
+  const row=g=>{const safeName=g.name.replace(/&/g,'&amp;').replace(/'/g,'&#39;').replace(/"/g,'&quot;');return `<div class="grow"><button class="chk ${g.paid?'on':''}" onclick="tPaid('${g.id}')"></button><div class="gico" style="background:${gBg(g.name)}">${catIco(g.cat)}</div><div class="ginf" onclick="openEdit('${g.id}')"><div class="gnm ${g.paid?'done':''}">${g.name}</div><div class="gsb">${g.cat||''}${g.anticipado?'<span class="ant-badge">&#9889; anticipado</span>':''}</div></div><div class="gamt ${g.paid?'done':''}" onclick="openEdit('${g.id}')">${fmt(g.amount)}</div><button class="del" data-id="${g.id}" data-name="${safeName}" onclick="delGasto(this)">&#215;</button></div>`;}
+  const incRow=i=>{const safeDesc=i.desc.replace(/&/g,'&amp;').replace(/'/g,'&#39;').replace(/"/g,'&quot;');return `<div class="inc-row"><div class="inc-ico">&#128181;</div><div class="inc-inf" onclick="openEditIngreso('${i.id}')"><div class="inc-nm">${i.desc}</div><div class="inc-sb">Toca para editar</div></div><div class="inc-amt">${fmt(i.monto)}</div><button class="del" data-id="${i.id}" data-name="${safeDesc}" onclick="delIngreso(this)">&#215;</button></div>`;}
   const futureBanner=isFuture()?`<div class="tip ind" style="margin-bottom:10px"><span class="ti">⚡</span><div class="tb"><b>Mes futuro</b> — planificando ${MNS[curM]}. Gastos se pagan en ${curM===0?MNS[11]:MNS[curM-1]}.</div></div>`:'';
   document.getElementById('s-gastos').innerHTML=rHdr('Gastos',true)+`
   <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;padding:12px 16px 0">
@@ -717,27 +757,39 @@ function rAjustes(){
     <div class="set-section"><div class="set-row" onclick="openPrimaModal()"><div class="set-ico" style="background:#fffde7">&#127873;</div><div class="set-inf"><div class="set-ttl">Planificar prima</div><div class="set-sub">Junio y diciembre aprox ${fmt(PRIMA())}</div></div><span class="set-arr">&#8250;</span></div></div>
     <div class="shdr"><span class="sttl">Cadena</span></div>
     <div class="set-section"><div class="set-row" onclick="openCadConf()"><div class="set-ico" style="background:var(--ibg)">&#128279;</div><div class="set-inf"><div class="set-ttl">Configurar cadena</div></div><span class="set-arr">&#8250;</span></div></div>
+    <div class="shdr"><span class="sttl">Seguridad</span></div>
+    <div class="set-section" id="pin-setting"></div>
     <div class="shdr"><span class="sttl">Info</span></div>
     <div class="set-section"><div class="set-row" style="cursor:default"><div class="set-ico" style="background:#f0f4ff">&#128153;</div><div class="set-inf"><div class="set-ttl">Cartera v9</div><div class="set-sub">Datos locales en tu dispositivo. Sin servidores.</div></div></div></div>
   </div>`;
+  // Actualizar sección PIN dinámicamente (no depende del innerHTML)
+  const pinEl = document.getElementById('pin-setting');
+  if(pinEl){
+    if(hasPin()){
+      pinEl.innerHTML = '<div class="set-row" onclick="pinRemove()"><div class="set-ico" style="background:#fce4ec">&#128274;</div><div class="set-inf"><div class="set-ttl">PIN activado</div><div class="set-sub">Toca para desactivar</div></div><span class="set-arr">&#215;</span></div>';
+    } else {
+      pinEl.innerHTML = '<div class="set-row" onclick="pinOpen(\'set\')"><div class="set-ico" style="background:#f0f0f5">&#128275;</div><div class="set-inf"><div class="set-ttl">Activar PIN</div><div class="set-sub">Protege la app con 4 dígitos</div></div><span class="set-arr">&#8250;</span></div>';
+    }
+  }
 }
 
 // ── CFG MODAL ─────────────────────────────────────────────
 let _cfgTipo='mensual';
 function cfgSetTipo(t){_cfgTipo=t;document.getElementById('cfg-t-mens').classList.toggle('on',t==='mensual');document.getElementById('cfg-t-quin').classList.toggle('on',t==='quincenal');document.getElementById('cfg-f-mens').style.display=t==='mensual'?'':'none';document.getElementById('cfg-f-quin').style.display=t==='quincenal'?'':'none';}
-function openCfgModal(){const c=gCfgApp()||{};document.getElementById('cfg-nombre').value=c.nombre||'';document.getElementById('cfg-neto').value=c.neto||'';document.getElementById('cfg-gas').value=c.gasolina||0;const tipo=c.tipoNomina||'mensual';_cfgTipo=tipo;document.getElementById('cfg-t-mens').classList.toggle('on',tipo==='mensual');document.getElementById('cfg-t-quin').classList.toggle('on',tipo==='quincenal');document.getElementById('cfg-f-mens').style.display=tipo==='mensual'?'':'none';document.getElementById('cfg-f-quin').style.display=tipo==='quincenal'?'':'none';document.getElementById('cfg-dia').value=c.nominaDia||25;document.getElementById('cfg-q1').value=c.q1||15;document.getElementById('cfg-q2').value=c.q2||30;openOv('ov-config');}
-function saveCfg(){const nombre=document.getElementById('cfg-nombre').value.trim();const neto=parseInt(document.getElementById('cfg-neto').value)||0;const gas=parseInt(document.getElementById('cfg-gas').value)||0;const cfg={nombre,neto,gasolina:gas,tipoNomina:_cfgTipo};if(_cfgTipo==='mensual'){cfg.nominaDia=parseInt(document.getElementById('cfg-dia').value)||25;}else{cfg.q1=parseInt(document.getElementById('cfg-q1').value)||15;cfg.q2=parseInt(document.getElementById('cfg-q2').value)||30;}sCfgApp(cfg);closeOv('ov-config');renderAll();}
+function openCfgModal(){const c=gCfgApp()||{};document.getElementById('cfg-nombre').value=c.nombre||'';document.getElementById('cfg-neto').value=c.neto||'';const tipo=c.tipoNomina||'mensual';_cfgTipo=tipo;document.getElementById('cfg-t-mens').classList.toggle('on',tipo==='mensual');document.getElementById('cfg-t-quin').classList.toggle('on',tipo==='quincenal');document.getElementById('cfg-f-mens').style.display=tipo==='mensual'?'':'none';document.getElementById('cfg-f-quin').style.display=tipo==='quincenal'?'':'none';document.getElementById('cfg-dia').value=c.nominaDia||25;document.getElementById('cfg-q1').value=c.q1||15;document.getElementById('cfg-q2').value=c.q2||30;openOv('ov-config');}
+function saveCfg(){const nombre=document.getElementById('cfg-nombre').value.trim();const neto=parseInt(document.getElementById('cfg-neto').value)||0;const cfg={nombre,neto,tipoNomina:_cfgTipo};if(_cfgTipo==='mensual'){cfg.nominaDia=parseInt(document.getElementById('cfg-dia').value)||25;}else{cfg.q1=parseInt(document.getElementById('cfg-q1').value)||15;cfg.q2=parseInt(document.getElementById('cfg-q2').value)||30;}sCfgApp(cfg);closeOv('ov-config');renderAll();}
 
 // ── ACCIONES ──────────────────────────────────────────────
 function abonoFna(){const e=parseInt(document.getElementById('fna-extra').value)||0;if(!e)return;const m=gMeta();m.total=(m.total||0)+e;sMeta(m);document.getElementById('fna-extra').value='';rMas();}
 function updM(f,v){const m=gMeta();m[f]=parseInt(v)||0;sMeta(m);rMas();}
 function updTc(f,v){const t=gTc();t[f]=parseInt(v)||0;sTc(t);rMas();}
 function setMeses(n){const t=gTc();t.cuota=Math.ceil(t.saldo/n);sTc(t);rMas();}
-function tPaid(id){const d=gD();const g=d.gastos.find(x=>x.id===id);if(g){g.paid=!g.paid;sD(d);}else{if(id==='tc_auto'){const tc=gTc();d.gastos.push({id:'tc_auto',name:'Cuota tarjeta',amount:tc.cuota,cat:'Deuda',paid:true});sD(d);}else if(id==='gas_auto'){d.gastos.push({id:'gas_auto',name:'Gasolina',amount:GASOLINA(),cat:'Transporte',paid:true});sD(d);}}renderAll();}
+function tPaid(id){const d=gD();const g=d.gastos.find(x=>x.id===id);if(g){g.paid=!g.paid;sD(d);}renderAll();}
 function openAdd(){editId=null;document.getElementById('ogt').textContent='Agregar gasto';document.getElementById('og-nom').value='';document.getElementById('og-mnt').value='';document.getElementById('og-cat').value='Otros';document.getElementById('og-ahorro').checked=false;document.getElementById('og-ant').checked=false;openOv('ov-gasto');setTimeout(()=>document.getElementById('og-nom').focus(),150);}
 function openEdit(id){const d=gD();const g=d.gastos.find(x=>x.id===id);if(!g)return;editId=id;document.getElementById('ogt').textContent='Editar '+g.name;document.getElementById('og-nom').value=g.name;document.getElementById('og-mnt').value=g.amount;document.getElementById('og-cat').value=g.cat||'Otros';document.getElementById('og-ahorro').checked=!!g.ahorro;document.getElementById('og-ant').checked=!!g.anticipado;openOv('ov-gasto');}
 function saveGasto(){const name=document.getElementById('og-nom').value.trim();const amount=parseInt(document.getElementById('og-mnt').value)||0;const cat=document.getElementById('og-cat').value;const ah=document.getElementById('og-ahorro').checked;const anticipado=document.getElementById('og-ant').checked;if(!name)return;const d=gD();if(editId){const g=d.gastos.find(x=>x.id===editId);if(g){g.name=name;g.amount=amount;g.cat=cat;g.ahorro=ah;g.anticipado=anticipado;}}else d.gastos.push({id:'g_'+Date.now(),name,amount,cat:ah?'Ahorro':cat,paid:false,ahorro:ah,anticipado});sD(d);closeOv('ov-gasto');renderAll();}
-function confDel(id,name){showConfirm('Eliminar "'+name+'"?','Se quitara de este mes.',()=>{const d=gD();d.gastos=d.gastos.filter(x=>x.id!==id);sD(d);renderAll();});}
+function delGasto(btn){const id=btn.dataset.id;const name=btn.dataset.name;confDel(id,name);}
+function confDel(id,name){showConfirm('¿Eliminar "'+name+'"?','Se quitará de este mes. No se puede deshacer.',()=>{const d=gD();d.gastos=d.gastos.filter(x=>x.id!==id);sD(d);renderAll();});}
 function openOv(id){document.getElementById(id).classList.add('open');}
 function closeOv(id){document.getElementById(id).classList.remove('open');}
 function showConfirm(t,s,cb){document.getElementById('ct').textContent=t;document.getElementById('cs').textContent=s;ccb=cb;openOv('ov-confirm');}
@@ -745,6 +797,118 @@ document.getElementById('cok').onclick=()=>{closeOv('ov-confirm');if(ccb)ccb();c
 document.querySelectorAll('.overlay').forEach(el=>el.addEventListener('click',e=>{if(e.target===el)el.classList.remove('open');}));
 document.addEventListener('keydown',e=>{if(e.key==='Enter'){if(document.getElementById('ov-gasto').classList.contains('open'))saveGasto();if(document.getElementById('ov-ingreso').classList.contains('open'))saveIngreso();}});
 document.getElementById('nav-mas').addEventListener('click',()=>goTo('ajustes'));
+
+// ── PIN ───────────────────────────────────────────────────
+const PIN_KEY = PFX + 'pin';
+let _pinBuf = '';
+let _pinMode = 'unlock'; // 'unlock' | 'set' | 'confirm'
+let _pinTemp = '';
+
+function hasPin(){ return !!localStorage.getItem(PIN_KEY); }
+function checkPin(){ return localStorage.getItem(PIN_KEY); }
+
+function pinOpen(mode){
+  _pinMode = mode;
+  _pinBuf = '';
+  _pinTemp = '';
+  const sub = document.getElementById('pin-sub');
+  const forgot = document.getElementById('pin-forgot');
+  if(mode === 'unlock'){
+    sub.textContent = 'Ingresa tu PIN';
+    forgot.style.display = '';
+  } else if(mode === 'set'){
+    sub.textContent = 'Crea tu PIN de 4 dígitos';
+    forgot.style.display = 'none';
+  } else if(mode === 'confirm'){
+    sub.textContent = 'Confirma tu PIN';
+    forgot.style.display = 'none';
+  }
+  document.getElementById('pin-error').textContent = '';
+  pinRefreshDots();
+  document.getElementById('pin-screen').classList.add('open');
+}
+
+function pinClose(){
+  document.getElementById('pin-screen').classList.remove('open');
+  _pinBuf = '';
+}
+
+function pinRefreshDots(){
+  for(let i=0;i<4;i++){
+    document.getElementById('pd'+i).classList.toggle('on', i < _pinBuf.length);
+  }
+}
+
+function pinKey(d){
+  if(_pinBuf.length >= 4) return;
+  _pinBuf += d;
+  pinRefreshDots();
+  document.getElementById('pin-error').textContent = '';
+  if(_pinBuf.length === 4) setTimeout(pinSubmit, 120);
+}
+
+function pinDel(){
+  _pinBuf = _pinBuf.slice(0,-1);
+  pinRefreshDots();
+}
+
+function pinSubmit(){
+  if(_pinMode === 'unlock'){
+    if(_pinBuf === checkPin()){
+      pinClose();
+    } else {
+      document.getElementById('pin-error').textContent = 'PIN incorrecto. Intenta de nuevo.';
+      _pinBuf = '';
+      pinRefreshDots();
+    }
+  } else if(_pinMode === 'set'){
+    _pinTemp = _pinBuf;
+    _pinBuf = '';
+    pinRefreshDots();
+    _pinMode = 'confirm';
+    document.getElementById('pin-sub').textContent = 'Confirma tu PIN';
+    document.getElementById('pin-error').textContent = '';
+  } else if(_pinMode === 'confirm'){
+    if(_pinBuf === _pinTemp){
+      localStorage.setItem(PIN_KEY, _pinBuf);
+      pinClose();
+      renderAll();
+      alert('\u2705 PIN activado. Se pedirá cada vez que abras la app.');
+    } else {
+      document.getElementById('pin-error').textContent = 'Los PINs no coinciden. Intenta de nuevo.';
+      _pinBuf = '';
+      _pinTemp = '';
+      _pinMode = 'set';
+      document.getElementById('pin-sub').textContent = 'Crea tu PIN de 4 dígitos';
+      pinRefreshDots();
+    }
+  }
+}
+
+function pinForgot(){
+  pinClose();
+  openOv('ov-import');
+}
+
+function pinRemove(){
+  showConfirm('\u00bfDesactivar PIN?','La app no pedirá PIN al abrir.', ()=>{
+    localStorage.removeItem(PIN_KEY);
+    renderAll();
+  });
+}
+
+// Teclado físico para el PIN
+document.addEventListener('keydown', e => {
+  if(!document.getElementById('pin-screen').classList.contains('open')) return;
+  if(e.key >= '0' && e.key <= '9') pinKey(e.key);
+  if(e.key === 'Backspace') pinDel();
+});
+
+// Mostrar PIN al arrancar si está configurado
+(function initPin(){
+  if(hasPin()) pinOpen('unlock');
+})();
+
 renderAll();
 </script>
 </body>
