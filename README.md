@@ -49,15 +49,13 @@ Aplicación web progresiva (PWA) de **cartera mensual personal**, pensada para u
 
 ## Capturas
 
-> 📸 _Para añadir capturas reales: toma los screenshots desde tu iPhone, ponlos en la carpeta `docs/` con estos nombres y se mostrarán solos._
-
 | Inicio | Gastos | Cadena de ahorro |
 |:---:|:---:|:---:|
 | ![Inicio](docs/01-inicio.png) | ![Gastos](docs/02-gastos.png) | ![Cadena](docs/03-cadena.png) |
 
-| Mercado | Análisis | Ajustes |
-|:---:|:---:|:---:|
-| ![Mercado](docs/04-mercado.png) | ![Análisis](docs/05-analisis.png) | ![Ajustes](docs/06-ajustes.png) |
+| Mercado | Ajustes |
+|:---:|:---:|
+| ![Mercado](docs/04-mercado.png) | ![Ajustes](docs/06-ajustes.png) |
 
 ---
 

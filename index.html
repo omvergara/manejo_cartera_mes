@@ -417,6 +417,8 @@ const PFX='app_';
 function gCfgApp(){const r=localStorage.getItem(PFX+'cfg');return r?JSON.parse(r):null;}
 function sCfgApp(c){localStorage.setItem(PFX+'cfg',JSON.stringify(c));autoSync();}
 function NOMBRE(){return gCfgApp()?.nombre||'';}
+// Escapa datos del usuario antes de insertarlos en innerHTML (previene XSS almacenado).
+function esc(s){return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');}
 function NETO(){return gCfgApp()?.neto||0;}
 function TIPO_NOMINA(){return gCfgApp()?.tipoNomina||'mensual';}// 'mensual' | 'quincenal'
 function NDAY(){return gCfgApp()?.nominaDia||25;}   // mensual
@@ -611,7 +613,7 @@ function rInicio(){
   const pctP=tc?Math.round(paid/tc*100):0;
   const primaRec=isPrimaMonth()&&!getPrimaConfig()&&NETO()>0;
   const nombre=NOMBRE();
-  const saludo=nombre?`Hola, <b>${nombre}</b> 👋`:'Tu neto';
+  const saludo=nombre?`Hola, <b>${esc(nombre)}</b> 👋`:'Tu neto';
 
   // Hero: área derecha diferente según tipo de nómina
   let heroRight='';
@@ -676,8 +678,8 @@ function rGastos(){
   if(sortByMonto){gs=[...gs].sort((a,b)=>b.amount-a.amount);as=[...as].sort((a,b)=>b.amount-a.amount);}
   let tG=0,pG=0;gs.forEach(g=>{tG+=g.amount;if(g.paid)pG+=g.amount;});
   const ingresos=gInc();const totalInc=ingresos.reduce((s,i)=>s+i.monto,0);
-  const row=g=>{const safeName=g.name.replace(/&/g,'&amp;').replace(/'/g,'&#39;').replace(/"/g,'&quot;');return `<div class="grow"><button class="chk ${g.paid?'on':''}" onclick="tPaid('${g.id}')"></button><div class="gico" style="background:${gBg(g.name)}">${catIco(g.cat)}</div><div class="ginf" onclick="openEdit('${g.id}')"><div class="gnm ${g.paid?'done':''}">${g.name}</div><div class="gsb">${g.cat||''}${g.anticipado?'<span class="ant-badge">&#9889; anticipado</span>':''}</div></div><div class="gamt ${g.paid?'done':''}" onclick="openEdit('${g.id}')">${fmt(g.amount)}</div><button class="del" data-id="${g.id}" data-name="${safeName}" onclick="delGasto(this)">&#215;</button></div>`;}
-  const incRow=i=>{const safeDesc=i.desc.replace(/&/g,'&amp;').replace(/'/g,'&#39;').replace(/"/g,'&quot;');return `<div class="inc-row"><div class="inc-ico">&#128181;</div><div class="inc-inf" onclick="openEditIngreso('${i.id}')"><div class="inc-nm">${i.desc}</div><div class="inc-sb">Toca para editar</div></div><div class="inc-amt">${fmt(i.monto)}</div><button class="del" data-id="${i.id}" data-name="${safeDesc}" onclick="delIngreso(this)">&#215;</button></div>`;}
+  const row=g=>{const safeName=esc(g.name);return `<div class="grow"><button class="chk ${g.paid?'on':''}" onclick="tPaid('${g.id}')"></button><div class="gico" style="background:${gBg(g.name)}">${catIco(g.cat)}</div><div class="ginf" onclick="openEdit('${g.id}')"><div class="gnm ${g.paid?'done':''}">${safeName}</div><div class="gsb">${esc(g.cat||'')}${g.anticipado?'<span class="ant-badge">&#9889; anticipado</span>':''}</div></div><div class="gamt ${g.paid?'done':''}" onclick="openEdit('${g.id}')">${fmt(g.amount)}</div><button class="del" data-id="${g.id}" data-name="${safeName}" onclick="delGasto(this)">&#215;</button></div>`;}
+  const incRow=i=>{const safeDesc=esc(i.desc);return `<div class="inc-row"><div class="inc-ico">&#128181;</div><div class="inc-inf" onclick="openEditIngreso('${i.id}')"><div class="inc-nm">${safeDesc}</div><div class="inc-sb">Toca para editar</div></div><div class="inc-amt">${fmt(i.monto)}</div><button class="del" data-id="${i.id}" data-name="${safeDesc}" onclick="delIngreso(this)">&#215;</button></div>`;}
   const futureBanner=isFuture()?`<div class="tip ind" style="margin-bottom:10px"><span class="ti">⚡</span><div class="tb"><b>Mes futuro</b> — planificando ${MNS[curM]}. Gastos se pagan en ${curM===0?MNS[11]:MNS[curM-1]}.</div></div>`:'';
   document.getElementById('s-gastos').innerHTML=rHdr('Gastos',true)+`
   <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;padding:12px 16px 0">
@@ -707,7 +709,7 @@ function rCadena(){
   if(!pagos.length){document.getElementById('s-cadena').innerHTML=rHdr('Cadena',false)+`<div class="content"><div class="tip info"><span class="ti">🔗</span><div class="tb">No tienes cadena configurada.</div></div><div style="text-align:center;margin-top:14px"><button class="bfull" style="max-width:300px" onclick="openCadConf()">⚙️ Configurar cadena</button></div></div>`;return;}
   const nP=pagos.filter(p=>p.paid).length;const pct=Math.round(nP/pagos.length*100);const tMes=pagos.reduce((a,p)=>a+p.monto,0);const tuT=pagos.reduce((a,p)=>a+p.tuyo,0);const noPag=pagos.filter(p=>!p.paid);const mTot=Math.ceil(cfg.puestos/2);
   const tl=[];for(let i=0;i<mTot;i++){let m=cfg.mesInicio+i,y=cfg.anioInicio;if(m>11){m-=12;y++;}tl.push({mes:MNS[m],anio:y,idx:i+1,isCur:m===curM&&y===curY,isPast:(y<curY)||(y===curY&&m<curM),t1:cfg.t1===i+1,t2:cfg.t2===i+1});}
-  const pRows=pagos.map(p=>{const isN=noPag.length&&noPag[0].id===p.id;return`<div class="pr"><div class="pfecha"><div class="pdia">${p.q}</div><div class="pmes">${MNS[curM].slice(0,3)}</div></div><div class="pinf"><div class="pdesc">${p.desc}${isN?'<span class="np2">Próximo</span>':''}${p.comp>0?'<span class="cp">Compartido</span>':''}</div><div class="pdet">${p.det}</div></div><div class="pamt ${p.paid?'done':''}">${fmt(p.monto)}</div><button class="pchk ${p.paid?'on':''}" onclick="tCadena('${p.id}')"></button></div>`;}).join('');
+  const pRows=pagos.map(p=>{const isN=noPag.length&&noPag[0].id===p.id;return`<div class="pr"><div class="pfecha"><div class="pdia">${p.q}</div><div class="pmes">${MNS[curM].slice(0,3)}</div></div><div class="pinf"><div class="pdesc">${esc(p.desc)}${isN?'<span class="np2">Próximo</span>':''}${p.comp>0?'<span class="cp">Compartido</span>':''}</div><div class="pdet">${esc(p.det)}</div></div><div class="pamt ${p.paid?'done':''}">${fmt(p.monto)}</div><button class="pchk ${p.paid?'on':''}" onclick="tCadena('${p.id}')"></button></div>`;}).join('');
   const tlRows=tl.map(t=>`<div class="tlrow"><div class="tldot ${t.isPast?'done':t.isCur?'cur':'fut'}"></div><div class="tlinf"><div class="tlmes">${t.mes} ${t.anio}${t.t1||t.t2?' 🏆':''}</div><div class="tlsub">Mes ${t.idx}${t.isCur?' • Actual':t.isPast?' • Pagado':''}</div></div>${t.t1?`<div class="tlturno">Tu turno P1</div>`:t.t2?`<div class="tlturno">Tu turno P2</div>`:`<div style="font-size:12px;color:var(--t3)">${fmt(cfg.valor*2)}</div>`}</div>`).join('');
   document.getElementById('s-cadena').innerHTML=rHdr('Cadena',true)+`<div class="content"><div class="list" style="margin-bottom:12px"><div class="cdhdr"><div style="display:flex;justify-content:space-between;align-items:flex-start"><div><div class="cdttl">🔗 Cadena ${cfg.puestos} puestos</div><div class="cdsub">Cobros días ${cfg.d1} y ${cfg.d2} • Tú pagas el ${cfg.dPago} del mes anterior</div></div><button class="cfg-btn" onclick="openCadConf()">⚙️</button></div><div style="margin-top:10px"><div class="pbg"><div class="pfill" style="width:${pct}%;background:var(--ind)"></div></div><div class="prw"><span class="plbl">${nP}/${pagos.length} pagos</span><span class="plbl">${pct}%</span></div></div></div>${pRows}</div><div class="tip ind"><span class="ti">📌</span><div class="tb">Tu aporte: <b>${fmt(tuT)}</b>/mes. Los pagas el día <b>${cfg.dPago}</b> del mes anterior — es decir, el 25 de junio cubres los cobros del 5 y 15 de <b>julio</b>.</div></div><div class="shdr"><span class="sttl">📅 Timeline</span></div><div class="list" style="margin-bottom:12px">${tlRows}</div></div>`;
 }
@@ -715,7 +717,7 @@ function tCadena(id){const p=getCPagos();const it=p.find(x=>x.id===id);if(it)it.
 function openCadConf(){const c=gCfg();document.getElementById('cc-p').value=c.puestos;document.getElementById('cc-v').value=c.valor;document.getElementById('cc-m').value=c.mesInicio+1;document.getElementById('cc-a').value=c.anioInicio;document.getElementById('cc-d1').value=c.d1;document.getElementById('cc-d2').value=c.d2;document.getElementById('cc-dp').value=c.dPago;document.getElementById('cc-t1').value=c.t1;document.getElementById('cc-t2').value=c.t2;openOv('ov-cc');}
 
 // ── MERCADO ───────────────────────────────────────────────
-function rMercado(){const items=gM();const on=items.filter(i=>i.on).length;let html='';CATS.forEach(cat=>{const ci=items.filter(i=>i.cat===cat.k);if(!ci.length)return;const conOn=ci.filter(i=>i.on).length;const cid='cat_'+cat.k.replace(/[\s\/]/g,'_');html+=`<div><button class="cat-hdr-btn" onclick="toggleCat('${cid}')"><div class="cat-left"><span class="cat-ico">${cat.i}</span><span class="cat-name">${cat.k}</span>${conOn>0?`<span class="cat-cnt">${conOn}</span>`:''}</div><span class="cat-arrow" id="arr_${cid}">▾</span></button><div class="cat-items" id="${cid}">${ci.map(item=>`<div class="irow"><button class="ibox ${item.on?'on':''}" onclick="tItem('${item.id}')"></button><span class="iemo">${item.icon}</span><span class="inm ${item.on?'on':''}">${item.name}</span><button class="idel" onclick="confDelMrc('${item.id}','${item.name.replace(/'/g,"\\'")}')">×</button></div>`).join('')}</div></div>`;});
+function rMercado(){const items=gM();const on=items.filter(i=>i.on).length;let html='';CATS.forEach(cat=>{const ci=items.filter(i=>i.cat===cat.k);if(!ci.length)return;const conOn=ci.filter(i=>i.on).length;const cid='cat_'+cat.k.replace(/[\s\/]/g,'_');html+=`<div><button class="cat-hdr-btn" onclick="toggleCat('${cid}')"><div class="cat-left"><span class="cat-ico">${cat.i}</span><span class="cat-name">${cat.k}</span>${conOn>0?`<span class="cat-cnt">${conOn}</span>`:''}</div><span class="cat-arrow" id="arr_${cid}">▾</span></button><div class="cat-items" id="${cid}">${ci.map(item=>`<div class="irow"><button class="ibox ${item.on?'on':''}" onclick="tItem('${item.id}')"></button><span class="iemo">${item.icon}</span><span class="inm ${item.on?'on':''}">${esc(item.name)}</span><button class="idel" onclick="confDelMrc('${item.id}')">×</button></div>`).join('')}</div></div>`;});
   document.getElementById('s-mercado').innerHTML=rHdr('Mercado',false)+`<div class="content" style="padding-bottom:80px"><div class="tip info" style="margin-bottom:10px"><span class="ti">💡</span><div class="tb">Activa lo que necesitas comprar. Toca la categoría para expandir.</div></div><div class="mwrap"><div class="mtop"><div><div style="font-size:15px;font-weight:600">Lista del mes</div><div style="font-size:12px;color:var(--t2)">${on} seleccionados</div></div><button class="mrcbtn" onclick="deselectAll()">Limpiar todo</button></div>${html}<div class="add-row"><input class="add-inp" id="ni" type="text" placeholder="Agregar producto..."><button class="add-go" onclick="addItem()">+</button></div></div></div>`;
   document.getElementById('ni').addEventListener('keydown',e=>{if(e.key==='Enter')addItem();});
   const fab=document.createElement('button');fab.className='fab green';fab.innerHTML='💾';fab.style.fontSize='22px';fab.onclick=()=>{openOv('ov-mrc');setTimeout(()=>document.getElementById('om-mnt').focus(),150);};document.body.appendChild(fab);
@@ -776,7 +778,7 @@ function deselectAll(){
   });
 }
 function addItem(){const inp=document.getElementById('ni');const name=(inp.value||'').trim();if(!name)return;const items=gM();items.push({id:'mx_'+Date.now(),name,icon:'🛍️',cat:'Otros',on:true});sM(items);renderAll();}
-function confDelMrc(id,name){showConfirm(`¿Quitar "${name}"?`,'Se elimina permanentemente.',()=>{sM(gM().filter(x=>x.id!==id));renderAll();});}
+function confDelMrc(id){const it=gM().find(x=>x.id===id);const name=it?it.name:'';showConfirm(`¿Quitar "${name}"?`,'Se elimina permanentemente.',()=>{sM(gM().filter(x=>x.id!==id));renderAll();});}
 function saveMrcGasto(){const monto=parseInt(document.getElementById('om-mnt').value)||0;if(!monto)return;const d=gD();const ex=d.gastos.find(g=>g.id==='mercado_g');if(ex){ex.amount=monto;ex.paid=true;}else d.gastos.push({id:'mercado_g',name:'Mercado',amount:monto,cat:'Alimentación',paid:true});sD(d);deselectAll();closeOv('ov-mrc');}
 
 // ── ANÁLISIS ──────────────────────────────────────────────
@@ -798,7 +800,7 @@ function rAjustes(){
   const nomSub=ES_QUINCENAL()?`Quincenal dias ${NDAY1()} y ${NDAY2()}`:`Mensual dia ${NDAY()}`;
   document.getElementById('s-ajustes').innerHTML=rHdr('Ajustes',false)+`<div class="content">
     <div class="shdr"><span class="sttl">Mi perfil</span></div>
-    <div class="set-section"><div class="set-row" onclick="openCfgModal()"><div class="set-ico" style="background:#e8f5e9">&#128176;</div><div class="set-inf"><div class="set-ttl">${NOMBRE()||'Configurar perfil'}</div><div class="set-sub">Neto: ${fmt(NETO())} - ${nomSub}</div></div><span class="set-arr">&#8250;</span></div></div>
+    <div class="set-section"><div class="set-row" onclick="openCfgModal()"><div class="set-ico" style="background:#e8f5e9">&#128176;</div><div class="set-inf"><div class="set-ttl">${esc(NOMBRE())||'Configurar perfil'}</div><div class="set-sub">Neto: ${fmt(NETO())} - ${nomSub}</div></div><span class="set-arr">&#8250;</span></div></div>
     <div class="shdr"><span class="sttl">Exportar</span></div>
     <div class="set-section"><div class="set-row" onclick="exportJSON()"><div class="set-ico" style="background:#e3f2fd">&#128230;</div><div class="set-inf"><div class="set-ttl">Respaldo JSON</div><div class="set-sub">Archivo completo restaurable.</div></div><span class="set-arr">&#8595;</span></div><div class="set-row" onclick="exportExcel()"><div class="set-ico" style="background:#e8f5e9">&#128202;</div><div class="set-inf"><div class="set-ttl">Historico CSV</div><div class="set-sub">Gastos e ingresos en tabla.</div></div><span class="set-arr">&#8595;</span></div></div>
     <div class="shdr"><span class="sttl">Restaurar</span></div>
@@ -812,7 +814,7 @@ function rAjustes(){
     <div class="shdr"><span class="sttl">Seguridad</span></div>
     <div class="set-section" id="pin-setting"></div>
     <div class="shdr"><span class="sttl">Info</span></div>
-    <div class="set-section"><div class="set-row" style="cursor:default"><div class="set-ico" style="background:#f0f4ff">&#128153;</div><div class="set-inf"><div class="set-ttl">Cartera v9</div><div class="set-sub">Datos locales en tu dispositivo. Sin servidores.</div></div></div></div>
+    <div class="set-section"><div class="set-row" style="cursor:default"><div class="set-ico" style="background:#f0f4ff">&#128153;</div><div class="set-inf"><div class="set-ttl">Cartera v9</div><div class="set-sub">Datos locales en tu dispositivo. Sin servidores.</div><div class="set-sub" style="margin-top:4px">Hecho por <b>Mauricio Vergara</b> · Bogotá&ndash;COL</div></div></div></div>
   </div>`;
   // Actualizar sección PIN dinámicamente (no depende del innerHTML)
   const pinEl = document.getElementById('pin-setting');

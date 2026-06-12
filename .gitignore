@@ -8,3 +8,6 @@ Thumbs.db
 # Editores
 .vscode/
 .idea/
+
+# Carpeta de trabajo de capturas (las finales renombradas sí se versionan en docs/)
+docs/Capturas/
