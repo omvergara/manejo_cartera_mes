@@ -709,7 +709,7 @@ function rCadena(){
   const tl=[];for(let i=0;i<mTot;i++){let m=cfg.mesInicio+i,y=cfg.anioInicio;if(m>11){m-=12;y++;}tl.push({mes:MNS[m],anio:y,idx:i+1,isCur:m===curM&&y===curY,isPast:(y<curY)||(y===curY&&m<curM),t1:cfg.t1===i+1,t2:cfg.t2===i+1});}
   const pRows=pagos.map(p=>{const isN=noPag.length&&noPag[0].id===p.id;return`<div class="pr"><div class="pfecha"><div class="pdia">${p.q}</div><div class="pmes">${MNS[curM].slice(0,3)}</div></div><div class="pinf"><div class="pdesc">${p.desc}${isN?'<span class="np2">Próximo</span>':''}${p.comp>0?'<span class="cp">Compartido</span>':''}</div><div class="pdet">${p.det}</div></div><div class="pamt ${p.paid?'done':''}">${fmt(p.monto)}</div><button class="pchk ${p.paid?'on':''}" onclick="tCadena('${p.id}')"></button></div>`;}).join('');
   const tlRows=tl.map(t=>`<div class="tlrow"><div class="tldot ${t.isPast?'done':t.isCur?'cur':'fut'}"></div><div class="tlinf"><div class="tlmes">${t.mes} ${t.anio}${t.t1||t.t2?' 🏆':''}</div><div class="tlsub">Mes ${t.idx}${t.isCur?' • Actual':t.isPast?' • Pagado':''}</div></div>${t.t1?`<div class="tlturno">Tu turno P1</div>`:t.t2?`<div class="tlturno">Tu turno P2</div>`:`<div style="font-size:12px;color:var(--t3)">${fmt(cfg.valor*2)}</div>`}</div>`).join('');
-  document.getElementById('s-cadena').innerHTML=rHdr('Cadena',true)+`<div class="content"><div class="list" style="margin-bottom:12px"><div class="cdhdr"><div style="display:flex;justify-content:space-between;align-items:flex-start"><div><div class="cdttl">🔗 Cadena ${cfg.puestos} puestos</div><div class="cdsub">Días ${cfg.d1} y ${cfg.d2} • Pagas el ${cfg.dPago}</div></div><button class="cfg-btn" onclick="openCadConf()">⚙️</button></div><div style="margin-top:10px"><div class="pbg"><div class="pfill" style="width:${pct}%;background:var(--ind)"></div></div><div class="prw"><span class="plbl">${nP}/${pagos.length} pagos</span><span class="plbl">${pct}%</span></div></div></div>${pRows}</div><div class="tip ind"><span class="ti">📌</span><div class="tb">Tu aporte: <b>${fmt(tuT)}</b>/mes. Total el ${cfg.dPago}: <b>${fmt(tMes)}</b>.</div></div><div class="shdr"><span class="sttl">📅 Timeline</span></div><div class="list" style="margin-bottom:12px">${tlRows}</div></div>`;
+  document.getElementById('s-cadena').innerHTML=rHdr('Cadena',true)+`<div class="content"><div class="list" style="margin-bottom:12px"><div class="cdhdr"><div style="display:flex;justify-content:space-between;align-items:flex-start"><div><div class="cdttl">🔗 Cadena ${cfg.puestos} puestos</div><div class="cdsub">Cobros días ${cfg.d1} y ${cfg.d2} • Tú pagas el ${cfg.dPago} del mes anterior</div></div><button class="cfg-btn" onclick="openCadConf()">⚙️</button></div><div style="margin-top:10px"><div class="pbg"><div class="pfill" style="width:${pct}%;background:var(--ind)"></div></div><div class="prw"><span class="plbl">${nP}/${pagos.length} pagos</span><span class="plbl">${pct}%</span></div></div></div>${pRows}</div><div class="tip ind"><span class="ti">📌</span><div class="tb">Tu aporte: <b>${fmt(tuT)}</b>/mes. Los pagas el día <b>${cfg.dPago}</b> del mes anterior — es decir, el 25 de junio cubres los cobros del 5 y 15 de <b>julio</b>.</div></div><div class="shdr"><span class="sttl">📅 Timeline</span></div><div class="list" style="margin-bottom:12px">${tlRows}</div></div>`;
 }
 function tCadena(id){const p=getCPagos();const it=p.find(x=>x.id===id);if(it)it.paid=!it.paid;saveCPagos(p);renderAll();}
 function openCadConf(){const c=gCfg();document.getElementById('cc-p').value=c.puestos;document.getElementById('cc-v').value=c.valor;document.getElementById('cc-m').value=c.mesInicio+1;document.getElementById('cc-a').value=c.anioInicio;document.getElementById('cc-d1').value=c.d1;document.getElementById('cc-d2').value=c.d2;document.getElementById('cc-dp').value=c.dPago;document.getElementById('cc-t1').value=c.t1;document.getElementById('cc-t2').value=c.t2;openOv('ov-cc');}
@@ -721,11 +721,63 @@ function rMercado(){const items=gM();const on=items.filter(i=>i.on).length;let h
   const fab=document.createElement('button');fab.className='fab green';fab.innerHTML='💾';fab.style.fontSize='22px';fab.onclick=()=>{openOv('ov-mrc');setTimeout(()=>document.getElementById('om-mnt').focus(),150);};document.body.appendChild(fab);
 }
 function toggleCat(id){const el=document.getElementById(id);const ar=document.getElementById('arr_'+id);if(!el)return;const o=el.classList.contains('open');el.classList.toggle('open',!o);if(ar)ar.classList.toggle('open',!o);}
-function tItem(id){const items=gM();const it=items.find(x=>x.id===id);if(it)it.on=!it.on;sM(items);renderAll();}
-function deselectAll(){sM(gM().map(i=>({...i,on:false})));renderAll();}
+function tItem(id){
+  const items=gM();
+  const it=items.find(x=>x.id===id);
+  if(!it) return;
+  it.on=!it.on;
+  sM(items);
+  // Actualizar solo el checkbox y el texto — sin redibujar todo
+  const btn=document.querySelector(`.ibox[onclick="tItem('${id}')"]`);
+  if(btn) btn.classList.toggle('on', it.on);
+  const nm=btn && btn.parentElement.querySelector('.inm');
+  if(nm){ nm.classList.toggle('on', it.on); }
+  // Actualizar contador de la categoría
+  const allItems=gM();
+  const catKey=it.cat;
+  const cid='cat_'+catKey.replace(/[\s\/]/g,'_');
+  const catItems=allItems.filter(x=>x.cat===catKey);
+  const conOn=catItems.filter(x=>x.on).length;
+  const cntEl=document.querySelector(`#arr_${cid}`)?.parentElement?.querySelector('.cat-cnt');
+  const hdrBtn=document.querySelector(`#arr_${cid}`)?.parentElement?.parentElement;
+  if(hdrBtn){
+    let cnt=hdrBtn.querySelector('.cat-cnt');
+    if(conOn>0){
+      if(cnt){ cnt.textContent=conOn; }
+      else {
+        const catName=hdrBtn.querySelector('.cat-name');
+        if(catName){
+          const span=document.createElement('span');
+          span.className='cat-cnt';
+          span.textContent=conOn;
+          catName.after(span);
+        }
+      }
+    } else {
+      if(cnt) cnt.remove();
+    }
+  }
+  // Actualizar badge nav y contador total
+  updBdg();
+  // Actualizar encabezado "X seleccionados"
+  const totalOn=gM().filter(i=>i.on).length;
+  const subEl=document.querySelector('.mtop div div:last-child');
+  if(subEl) subEl.textContent=totalOn+' seleccionados';
+}
+function deselectAll(){
+  sM(gM().map(i=>({...i,on:false})));
+  // Re-render solo mercado sin cerrar cats
+  const openCats=[...document.querySelectorAll('.cat-items.open')].map(el=>el.id);
+  rMercado();
+  openCats.forEach(id=>{
+    const el=document.getElementById(id);
+    const ar=document.getElementById('arr_'+id);
+    if(el){el.classList.add('open');if(ar)ar.classList.add('open');}
+  });
+}
 function addItem(){const inp=document.getElementById('ni');const name=(inp.value||'').trim();if(!name)return;const items=gM();items.push({id:'mx_'+Date.now(),name,icon:'🛍️',cat:'Otros',on:true});sM(items);renderAll();}
 function confDelMrc(id,name){showConfirm(`¿Quitar "${name}"?`,'Se elimina permanentemente.',()=>{sM(gM().filter(x=>x.id!==id));renderAll();});}
-function saveMrcGasto(){const monto=parseInt(document.getElementById('om-mnt').value)||0;if(!monto)return;const d=gD();const ex=d.gastos.find(g=>g.id==='mercado_g');if(ex){ex.amount=monto;ex.paid=true;}else d.gastos.push({id:'mercado_g',name:'Mercado',amount:monto,cat:'Alimentación',paid:true});sD(d);deselectAll();closeOv('ov-mrc');renderAll();}
+function saveMrcGasto(){const monto=parseInt(document.getElementById('om-mnt').value)||0;if(!monto)return;const d=gD();const ex=d.gastos.find(g=>g.id==='mercado_g');if(ex){ex.amount=monto;ex.paid=true;}else d.gastos.push({id:'mercado_g',name:'Mercado',amount:monto,cat:'Alimentación',paid:true});sD(d);deselectAll();closeOv('ov-mrc');}
 
 // ── ANÁLISIS ──────────────────────────────────────────────
 function rMas(){
