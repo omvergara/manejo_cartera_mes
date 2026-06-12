@@ -58,12 +58,13 @@ app_drive_fid        file ID del respaldo en Drive
 4. Exportar JSON → importarlo → datos intactos
 5. Verificar que no haya errores en consola
 
+## Smoke test automatizado
+`node test/smoke.mjs` — verifica que el JS embebido compile y que el nombre del usuario se escape (anti-XSS). Requiere Node 18+ y Chrome/Edge instalado. Sale con código 0 si pasa (apto para CI).
+
 ## Deploy
-`git push` a main → Netlify redespliega (~30s). No hay pipeline de build ni tests automatizados (backlog).
+`git push` a main → Netlify redespliega (~30s). No hay pipeline de build.
 
 ## Backlog conocido
-- Notificaciones push (service worker, iOS 16.4+)
-- Restauración automática desde Drive al abrir
-- Modo oscuro
-- Tests automatizados
+- Recordatorios in-app (nómina, cadena) — NO push del sistema: la app es serverless y el push real exige un backend con VAPID/web-push
 - Versión multi-usuario pública
+- Ampliar cobertura de tests (hoy hay un smoke test básico)

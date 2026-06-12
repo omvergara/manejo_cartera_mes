@@ -39,11 +39,12 @@ Aplicación web progresiva (PWA) de **cartera mensual personal**, pensada para u
 - **Prima semestral** (junio/diciembre, norma laboral colombiana) con asistente de distribución
 - **Tracker de deuda** (tarjeta de crédito) con proyección de meses para liquidar
 - **Meta de ahorro** con barra de progreso y abonos extra
-- **Historial mensual** con gráfico comparativo
+- **Historial mensual** con gráfico comparativo y **desglose por categorías**
+- **Modo oscuro** (tema iOS) con un toque en Ajustes
 - **Días para la nómina** visibles en el header de todas las pantallas
 - **Exportar**: respaldo JSON completo + histórico CSV para Excel
 - **Importar**: restauración total desde JSON
-- **Google Drive sync** (opcional): respaldo automático en cada cambio
+- **Google Drive sync** (opcional): respaldo automático en cada cambio + **restauración** desde la nube
 
 ---
 
@@ -164,6 +165,16 @@ location.reload();
 ```
 
 ---
+
+## Tests
+
+Smoke test sin dependencias (requiere Node 18+ y Chrome/Edge):
+
+```bash
+node test/smoke.mjs
+```
+
+Verifica que el JavaScript embebido compile y que el nombre del usuario se escape correctamente (protección anti-XSS). Sale con código 0 si todo pasa, apto para CI.
 
 ## Stack
 
