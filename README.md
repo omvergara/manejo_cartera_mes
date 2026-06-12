@@ -6,7 +6,9 @@
 ![Stack](https://img.shields.io/badge/stack-HTML%20%2B%20CSS%20%2B%20JS%20vanilla-f7df1e)
 ![Dependencias](https://img.shields.io/badge/dependencias-0-success)
 ![Plataforma](https://img.shields.io/badge/mobile--first-iOS%20%2F%20Safari-black)
-![Deploy](https://img.shields.io/badge/deploy-Netlify-00C7B7)
+[![Deploy](https://img.shields.io/badge/deploy-Netlify-00C7B7)](https://cartera-mes.netlify.app)
+
+### 🔗 En vivo → **[cartera-mes.netlify.app](https://cartera-mes.netlify.app)**
 
 Aplicación web progresiva (PWA) de **cartera mensual personal**, pensada para usarse desde el iPhone. Pensada para el contexto financiero colombiano: prima semestral, cadenas de ahorro, FNA, quincenas y nómina.
 
@@ -123,7 +125,7 @@ index.html  ← TODO: HTML + CSS + JS vanilla en un solo archivo
 4. **Pantalla de consentimiento OAuth →** tipo **Externo →** crear.
    - En *Usuarios de prueba* agrega tu propio correo (evita el proceso de verificación de Google).
 5. **Credenciales → Crear → ID de cliente OAuth → Aplicación web**.
-   - *Orígenes de JavaScript autorizados*: la URL exacta de la app (ej. `https://misitio.netlify.app`, **sin** barra final).
+   - *Orígenes de JavaScript autorizados*: la URL exacta de la app (`https://cartera-mes.netlify.app`, **sin** barra final).
 6. Copia el **Client ID**.
 7. En la app: **Ajustes → Conectar Google Drive →** pega el Client ID → autoriza.
 
