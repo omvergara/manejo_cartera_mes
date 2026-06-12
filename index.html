@@ -131,7 +131,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .add-inp{flex:1;border:0.5px solid var(--bdr);border-radius:8px;padding:8px 10px;font-size:14px;background:#f9f9f9;color:var(--t1)}
 .add-inp:focus{outline:none;border-color:var(--green)}
 .add-go{background:var(--green);border:none;border-radius:8px;padding:8px 14px;color:#fff;font-size:14px;font-weight:500;cursor:pointer}
-.fab{position:fixed;right:16px;bottom:82px;z-index:150;border:none;border-radius:50px;padding:14px 20px;font-size:15px;font-weight:600;cursor:pointer;color:#fff;display:flex;align-items:center;gap:8px;box-shadow:0 4px 16px rgba(0,0,0,.2)}
+.fab{position:fixed;right:16px;bottom:82px;z-index:150;border:none;width:54px;height:54px;border-radius:50%;padding:0;font-size:24px;font-weight:400;cursor:pointer;color:#fff;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 16px rgba(0,0,0,.25)}
 .fab.green{background:var(--green)}
 .fab.blue{background:var(--blue)}
 .chart-card{background:var(--card);border-radius:16px;border:0.5px solid var(--bdr);padding:14px;margin-bottom:12px}
@@ -234,7 +234,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
   <button class="nb" onclick="goTo('gastos')" id="nav-gastos"><span class="ni">💸</span><span>Gastos</span><span class="nbdg" id="bdg-g"></span></button>
   <button class="nb" onclick="goTo('cadena')" id="nav-cadena"><span class="ni">🔗</span><span>Cadena</span><span class="nbdg" id="bdg-c"></span></button>
   <button class="nb" onclick="goTo('mercado')" id="nav-mercado"><span class="ni">🛒</span><span>Mercado</span><span class="nbdg" id="bdg-m"></span></button>
-  <button class="nb" id="nav-mas"><span class="ni">📊</span><span>Más</span></button>
+  <button class="nb" id="nav-mas"><span class="ni">⚙️</span><span>Ajustes</span></button>
 </nav>
 
 <div class="overlay" id="ov-confirm"><div class="modal"><div class="mttl" id="ct"></div><div class="msub" id="cs"></div><div class="mbtns"><button class="bcancel" onclick="closeOv('ov-confirm')">Cancelar</button><button class="bdanger" id="cok">Eliminar</button></div></div></div>
@@ -394,8 +394,31 @@ function savePrimaDistribucion(){
 
 // ── ROUTING ───────────────────────────────────────────────
 function dNomina(){const h=new Date(),d=h.getDate(),nd=NDAY();if(d<nd)return nd-d;if(d===nd)return 0;const s=new Date(h.getFullYear(),h.getMonth()+1,nd);return Math.ceil((s-h)/86400000);}
-function changeMonth(dir){curM+=dir;if(curM>11){curM=0;curY++;}if(curM<0){curM=11;curY--;}renderAll();}
-function goTo(s){curScreen=s;document.querySelectorAll('.nb').forEach(b=>b.classList.remove('on'));const navId=(s==='ajustes'||s==='mas')?'nav-mas':'nav-'+s;document.getElementById(navId).classList.add('on');renderAll();}
+function earliestDataMonth(){
+  // Busca el mes más antiguo con datos guardados; si no hay, el mes actual
+  let minY=new Date().getFullYear(),minM=new Date().getMonth();
+  for(let i=0;i<localStorage.length;i++){
+    const k=localStorage.key(i);
+    const m=k&&k.match(new RegExp('^'+PFX+'(\\d{4})_(\\d{1,2})$'));
+    if(m){const y=+m[1],mm=+m[2];if(y<minY||(y===minY&&mm<minM)){minY=y;minM=mm;}}
+  }
+  return{y:minY,m:minM};
+}
+function isToday(){const h=new Date();return curY===h.getFullYear()&&curM===h.getMonth();}
+function goToday(){const h=new Date();curY=h.getFullYear();curM=h.getMonth();renderAll();}
+function changeMonth(dir){
+  let ny=curY,nm=curM+dir;
+  if(nm>11){nm=0;ny++;}if(nm<0){nm=11;ny--;}
+  // No ir antes del primer mes con datos
+  const min=earliestDataMonth();
+  if(ny<min.y||(ny===min.y&&nm<min.m))return;
+  // No ir más de 1 mes al futuro (para planear el próximo)
+  const h=new Date();let maxY=h.getFullYear(),maxM=h.getMonth()+1;
+  if(maxM>11){maxM=0;maxY++;}
+  if(ny>maxY||(ny===maxY&&nm>maxM))return;
+  curY=ny;curM=nm;renderAll();
+}
+function goTo(s){curScreen=s;document.querySelectorAll('.nb').forEach(b=>b.classList.remove('on'));const navId=s==='ajustes'?'nav-mas':s==='mas'?'nav-inicio':'nav-'+s;document.getElementById(navId).classList.add('on');renderAll();}
 function calcT(){const d=gD();let tot=0,paid=0,ah=0;d.gastos.forEach(g=>{if(g.ahorro)ah+=g.amount;else tot+=g.amount;if(g.paid)paid+=g.amount;});return{tot,paid,pending:(tot+ah)-paid,libre:NETO()-(tot+ah),ah,tc:tot+ah};}
 function updBdg(){const d=gD();const pg=d.gastos.filter(g=>!g.paid).length;const pc=getCPagos().filter(p=>!p.paid).length;const pm=gM().filter(x=>x.on).length;[['bdg-g',pg],['bdg-c',pc],['bdg-m',pm]].forEach(([id,n])=>{const el=document.getElementById(id);if(el){el.textContent=n;el.style.display=n>0?'flex':'none';}});}
 function renderAll(){
@@ -409,7 +432,7 @@ function rHdr(title,nav=true){
   const d=dNomina(),hd=new Date().getDate();
   const cls=hd===NDAY()?'hoy':d<=3?'pronto':'normal';
   const txt=hd===NDAY()?'🎉 ¡Hoy nómina!':d===0?'¡Mañana nómina!':'Nómina en '+d+' días';
-  return`<div class="hdr"><div class="hdr-row"><div class="app-ttl">${title}</div><span class="npill ${cls}">${txt}</span></div>${nav?`<div class="mnav"><button onclick="changeMonth(-1)">‹</button><span class="mlbl">${MNS[curM]} ${curY}</span><button onclick="changeMonth(1)">›</button></div>`:''}</div>`;
+  return`<div class="hdr"><div class="hdr-row"><div class="app-ttl">${title}</div><span class="npill ${cls}">${txt}</span></div>${nav?`<div class="mnav"><button onclick="changeMonth(-1)" aria-label="mes anterior">‹</button><span class="mlbl" onclick="goToday()" style="cursor:pointer">${MNS[curM]} ${curY}${!isToday()?' <span style="font-size:11px;background:var(--abg);color:var(--at);padding:2px 8px;border-radius:10px;font-weight:600;vertical-align:middle">Hoy ↩</span>':''}</span><button onclick="changeMonth(1)" aria-label="mes siguiente">›</button></div>`:''}</div>`;
 }
 
 function rInicio(){
@@ -439,7 +462,8 @@ function rInicio(){
       <div style="display:flex;justify-content:space-between;margin-bottom:4px"><span style="font-size:12px;color:var(--t2)">Progreso del mes</span><span style="font-size:12px;font-weight:600;color:var(--ind)">${pctP}% pagado</span></div>
       <div class="pbg"><div class="pfill" style="width:${pctP}%;background:var(--ind)"></div></div>
       <div class="prw"><span class="plbl">${fmt(paid)} pagado</span><span class="plbl">${fmt(pending)} pendiente</span></div>
-    </div>${tips}
+    </div>
+    <button onclick="goTo('mas')" style="width:100%;background:var(--card);border:0.5px solid var(--bdr);border-radius:14px;padding:13px 14px;margin-bottom:10px;display:flex;align-items:center;gap:10px;cursor:pointer;font-size:14px;color:var(--t1)"><span style="font-size:18px">📊</span><span style="flex:1;text-align:left;font-weight:500">Ver análisis completo</span><span style="color:var(--t3)">›</span></button>${tips}
   </div>`;
 }
 
@@ -461,7 +485,7 @@ function rGastos(){
     ${as.length?`<div class="shdr"><span class="sttl">🏦 Ahorros planillados</span></div><div class="list">${as.map(row).join('')}</div>`:''}
     ${gas>0?`<div class="shdr"><span class="sttl">🐜 Hormiga estimada</span></div><div class="list"><div class="grow"><div class="gico" style="background:#fff8e1">⛽</div><div class="ginf"><div class="gnm">Gasolina</div><div class="gsb">Estimado mensual</div></div><div class="gamt" style="color:var(--t2)">${fmt(gas)}</div></div></div>`:''}
   </div>`;
-  const fab=document.createElement('button');fab.className='fab blue';fab.innerHTML='＋ Agregar';fab.onclick=openAdd;document.body.appendChild(fab);
+  const fab=document.createElement('button');fab.className='fab blue';fab.innerHTML='＋';fab.setAttribute('aria-label','Agregar gasto');fab.onclick=openAdd;document.body.appendChild(fab);
 }
 
 function getCPagos(){
@@ -530,7 +554,7 @@ function rMercado(){
     </div>
   </div>`;
   document.getElementById('ni').addEventListener('keydown',e=>{if(e.key==='Enter')addItem();});
-  const fab=document.createElement('button');fab.className='fab green';fab.innerHTML='💚 Guardar gasto';fab.onclick=()=>{openOv('ov-mrc');setTimeout(()=>document.getElementById('om-mnt').focus(),150);};document.body.appendChild(fab);
+  const fab=document.createElement('button');fab.className='fab green';fab.innerHTML='💾';fab.setAttribute('aria-label','Guardar gasto de mercado');fab.style.fontSize='22px';fab.onclick=()=>{openOv('ov-mrc');setTimeout(()=>document.getElementById('om-mnt').focus(),150);};document.body.appendChild(fab);
 }
 function toggleCat(id){const el=document.getElementById(id);const ar=document.getElementById('arr_'+id);if(!el)return;const o=el.classList.contains('open');el.classList.toggle('open',!o);if(ar)ar.classList.toggle('open',!o);}
 function tItem(id){const items=gM();const it=items.find(x=>x.id===id);if(it)it.on=!it.on;sM(items);renderAll();}
@@ -570,7 +594,7 @@ function rMas(){
         ${tc.saldo>0?`<div style="display:flex;gap:6px;margin-top:10px;flex-wrap:wrap">${[3,6,9,12].map(n=>`<div class="mchip ${tc.cuota===Math.ceil(tc.saldo/n)?'on':''}" onclick="setMeses(${n})">${n} meses</div>`).join('')}</div>`:''}
       </div>
     </div>
-    <div style="text-align:center;margin-top:4px"><button onclick="goTo('ajustes')" style="background:none;border:0.5px solid var(--bdr);border-radius:10px;padding:10px 20px;font-size:14px;cursor:pointer;color:var(--blue)">⚙️ Ajustes y respaldos →</button></div>
+    <div style="text-align:center;margin-top:4px"><button onclick="goTo('inicio')" style="background:none;border:0.5px solid var(--bdr);border-radius:10px;padding:10px 20px;font-size:14px;cursor:pointer;color:var(--blue)">‹ Volver a Inicio</button></div>
   </div>`;
 }
 
@@ -618,7 +642,7 @@ function showConfirm(t,s,cb){document.getElementById('ct').textContent=t;documen
 document.getElementById('cok').onclick=()=>{closeOv('ov-confirm');if(ccb)ccb();ccb=null;};
 document.querySelectorAll('.overlay').forEach(el=>el.addEventListener('click',e=>{if(e.target===el)el.classList.remove('open');}));
 document.addEventListener('keydown',e=>{if(e.key==='Enter'&&document.getElementById('ov-gasto').classList.contains('open'))saveGasto();});
-document.getElementById('nav-mas').addEventListener('click',()=>{if(curScreen==='mas')goTo('ajustes');else goTo('mas');});
+document.getElementById('nav-mas').addEventListener('click',()=>goTo('ajustes'));
 
 renderAll();
 </script>
