@@ -65,6 +65,5 @@ app_drive_fid        file ID del respaldo en Drive
 - Notificaciones push (service worker, iOS 16.4+)
 - Restauración automática desde Drive al abrir
 - Modo oscuro
-- Gráfico por categorías
 - Tests automatizados
 - Versión multi-usuario pública
