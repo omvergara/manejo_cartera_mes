@@ -3,6 +3,9 @@
 ## Qué es esto
 PWA de finanzas personales en UN SOLO archivo (`index.html`). HTML + CSS + JS vanilla, cero build, cero dependencias npm. Desplegada en Netlify desde este repo (auto-deploy en push a main).
 
+- **Repo:** https://github.com/omvergara/manejo_cartera_mes (público)
+- **Capturas:** carpeta `docs/` (ver sección "Capturas" del README)
+
 ## Arquitectura crítica — leer antes de tocar código
 
 **Separación absoluta código/datos:**
