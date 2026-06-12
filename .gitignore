@@ -1,0 +1,10 @@
+# Config local de Claude Code (memoria, ajustes, no debe ir al repo público)
+.claude/
+
+# Sistema operativo
+Thumbs.db
+.DS_Store
+
+# Editores
+.vscode/
+.idea/
