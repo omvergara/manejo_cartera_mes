@@ -581,6 +581,10 @@ function authDrive(){const cid=getDriveClientId();if(!cid)return;if(!window.goog
 async function autoSync(){if(!driveToken)return;const payload=JSON.stringify(getAllData());try{if(driveFileId){await fetch(`https://www.googleapis.com/upload/drive/v3/files/${driveFileId}?uploadType=media`,{method:'PATCH',headers:{'Authorization':'Bearer '+driveToken,'Content-Type':'application/json'},body:payload});}else{const meta=await fetch('https://www.googleapis.com/drive/v3/files',{method:'POST',headers:{'Authorization':'Bearer '+driveToken,'Content-Type':'application/json'},body:JSON.stringify({name:'cartera_backup.json',mimeType:'application/json'})}).then(r=>r.json());if(meta.id){driveFileId=meta.id;localStorage.setItem(PFX+'drive_fid',meta.id);await fetch(`https://www.googleapis.com/upload/drive/v3/files/${meta.id}?uploadType=media`,{method:'PATCH',headers:{'Authorization':'Bearer '+driveToken,'Content-Type':'application/json'},body:payload});}}}catch(e){console.log('sync err',e);}}
 function isDriveConnected(){return !!driveToken;}
 async function syncNow(){await autoSync();alert(isDriveConnected()?'✅ Sincronizado.':'Conecta Drive primero.');}
+// Restauración desde Drive — pide token y SOLO descarga (nunca sube, para no pisar el respaldo)
+function startDriveRestore(){const cid=getDriveClientId();if(!cid){alert('Conecta Google Drive primero (necesitas tu Client ID).');return;}if(!window.google||!google.accounts){alert('Librería de Google aún cargando, espera 2s e intenta de nuevo.');return;}const tc=google.accounts.oauth2.initTokenClient({client_id:cid,scope:'https://www.googleapis.com/auth/drive.file',callback:(resp)=>{if(resp.access_token){driveToken=resp.access_token;doRestoreFromDrive();}}});tc.requestAccessToken();}
+async function doRestoreFromDrive(){try{let fid=driveFileId;if(!fid){const q=encodeURIComponent("name='cartera_backup.json' and trashed=false");const list=await fetch(`https://www.googleapis.com/drive/v3/files?q=${q}&fields=${encodeURIComponent('files(id,modifiedTime)')}&orderBy=${encodeURIComponent('modifiedTime desc')}`,{headers:{'Authorization':'Bearer '+driveToken}}).then(r=>r.json());if(list.files&&list.files.length){fid=list.files[0].id;driveFileId=fid;localStorage.setItem(PFX+'drive_fid',fid);}}if(!fid){alert('No se encontró un respaldo en tu Drive.');return;}const content=await fetch(`https://www.googleapis.com/drive/v3/files/${fid}?alt=media`,{headers:{'Authorization':'Bearer '+driveToken}}).then(r=>r.json());if(!content||typeof content!=='object'){alert('El respaldo está vacío o dañado.');return;}let n=0;Object.keys(content).forEach(k=>{if(k.startsWith(PFX)){localStorage.setItem(k,content[k]);n++;}});renderAll();alert('✅ Restaurados '+n+' datos desde Drive.');}catch(e){alert('Error al restaurar desde Drive. Revisa tu conexión e intenta de nuevo.');console.log('restore err',e);}}
+function restoreFromDrive(){if(!getDriveClientId()){alert('Conecta Google Drive primero (necesitas tu Client ID).');return;}showConfirm('¿Restaurar desde Drive?','Se reemplazarán los datos de este dispositivo con tu último respaldo en la nube.',startDriveRestore);}
 
 // ── PRIMA ─────────────────────────────────────────────────
 function isPrimaMonth(){return curM===5||curM===11;}
@@ -834,7 +838,7 @@ function rAjustes(){
     <div class="shdr"><span class="sttl">Restaurar</span></div>
     <div class="set-section"><div class="set-row" onclick="openOv('ov-import')"><div class="set-ico" style="background:#fff8e1">&#128229;</div><div class="set-inf"><div class="set-ttl">Importar respaldo</div><div class="set-sub">Desde archivo JSON.</div></div><span class="set-arr">&#8250;</span></div></div>
     <div class="shdr"><span class="sttl">Google Drive</span></div>
-    <div class="set-section"><div class="set-row" onclick="${driveId?'authDrive()':'openOv(\'ov-drive\')'}"><div class="set-ico" style="background:${driveOk?'#e8f5e9':'#f0f0f5'}">${driveOk?'OK':'Drive'}</div><div class="set-inf"><div class="set-ttl">${driveId?'Drive configurado':'Conectar Google Drive'}</div><div class="set-sub">${driveId?'Toca para re-autorizar (token 1h).':'Sincronizacion automatica.'}</div>${driveOk?'<span class="drive-status connected">Activo</span>':driveId?'<span class="drive-status disconnected">Renovar token</span>':''}</div><span class="set-arr">&#8250;</span></div>${driveId?`<div class="set-row" onclick="syncNow()"><div class="set-ico" style="background:#e8f5e9">&#128260;</div><div class="set-inf"><div class="set-ttl">Sincronizar ahora</div></div><span class="set-arr">&#8250;</span></div>`:''}</div>
+    <div class="set-section"><div class="set-row" onclick="${driveId?'authDrive()':'openOv(\'ov-drive\')'}"><div class="set-ico" style="background:${driveOk?'#e8f5e9':'#f0f0f5'}">${driveOk?'OK':'Drive'}</div><div class="set-inf"><div class="set-ttl">${driveId?'Drive configurado':'Conectar Google Drive'}</div><div class="set-sub">${driveId?'Toca para re-autorizar (token 1h).':'Sincronizacion automatica.'}</div>${driveOk?'<span class="drive-status connected">Activo</span>':driveId?'<span class="drive-status disconnected">Renovar token</span>':''}</div><span class="set-arr">&#8250;</span></div>${driveId?`<div class="set-row" onclick="syncNow()"><div class="set-ico" style="background:#e8f5e9">&#128260;</div><div class="set-inf"><div class="set-ttl">Sincronizar ahora</div></div><span class="set-arr">&#8250;</span></div><div class="set-row" onclick="restoreFromDrive()"><div class="set-ico" style="background:#fff8e1">&#11015;</div><div class="set-inf"><div class="set-ttl">Restaurar desde Drive</div><div class="set-sub">Trae tu último respaldo de la nube.</div></div><span class="set-arr">&#8250;</span></div>`:''}</div>
     <div class="shdr"><span class="sttl">Prima semestral</span></div>
     <div class="set-section"><div class="set-row" onclick="openPrimaModal()"><div class="set-ico" style="background:#fffde7">&#127873;</div><div class="set-inf"><div class="set-ttl">Planificar prima</div><div class="set-sub">Junio y diciembre aprox ${fmt(PRIMA())}</div></div><span class="set-arr">&#8250;</span></div></div>
     <div class="shdr"><span class="sttl">Cadena</span></div>
@@ -997,6 +1001,13 @@ applyTheme(gTheme());
 })();
 
 renderAll();
+
+// Restauración automática: si Drive quedó configurado pero el dispositivo no tiene datos, ofrecer recuperar
+(function offerDriveRestore(){
+  if(!gCfgApp() && getDriveClientId() && localStorage.getItem(PFX+'drive_fid')){
+    setTimeout(function(){showConfirm('Respaldo en Drive detectado','Este dispositivo no tiene datos, pero tienes Google Drive configurado. ¿Restaurar tu último respaldo?',startDriveRestore);},700);
+  }
+})();
 </script>
 </body>
 </html>
