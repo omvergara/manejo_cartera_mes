@@ -21,6 +21,15 @@
   --gray:#f0f0f5;
   --pur:#9c27b0;--pbg:#f3e5f5;--pt:#4a148c;
 }
+body.dark{
+  --bg:#000;--card:#1c1c1e;--bdr:#38383a;--t1:#f2f2f7;--t2:#aeaeb2;--t3:#8e8e93;--gray:#2c2c2e;
+  --gbg:#10331a;--gt:#5be584;--rbg:#3a121c;--rt:#ff8a9c;--bbg:#0e2740;--bt:#7fb5ff;
+  --abg:#3a2c08;--at:#ffc04d;--tbg:#08332e;--tt:#5fd0c4;--ibg:#1b2142;--it:#aeb8ff;--pbg:#2c1136;--pt:#e0a3ef;
+}
+body.dark .grow,body.dark .inc-row,body.dark .pr,body.dark .tlrow{border-bottom-color:#2c2c2e}
+body.dark .pbg,body.dark .btrack,body.dark .catbar-track{background:#2c2c2e}
+body.dark .tinp{background:#2c2c2e}
+body.dark .chk,body.dark .pchk{border-color:#555}
 body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:var(--bg);color:var(--t1);min-height:100vh;font-size:15px;padding-bottom:74px}
 .bnav{position:fixed;bottom:0;left:0;right:0;background:var(--card);border-top:0.5px solid var(--bdr);display:flex;z-index:200;padding-bottom:env(safe-area-inset-bottom,0px)}
 .nb{flex:1;display:flex;flex-direction:column;align-items:center;gap:2px;padding:9px 4px 7px;border:none;background:none;cursor:pointer;color:var(--t3);font-size:10px;position:relative}
@@ -420,6 +429,9 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 <script>
 const MNS=['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
 const PFX='app_';
+function gTheme(){return localStorage.getItem(PFX+'theme')||'light';}
+function applyTheme(t){document.body.classList.toggle('dark',t==='dark');}
+function toggleTheme(){const t=gTheme()==='dark'?'light':'dark';localStorage.setItem(PFX+'theme',t);applyTheme(t);autoSync();renderAll();}
 
 // ── CONFIG ────────────────────────────────────────────────
 function gCfgApp(){const r=localStorage.getItem(PFX+'cfg');return r?JSON.parse(r):null;}
@@ -826,6 +838,8 @@ function rAjustes(){
     <div class="set-section"><div class="set-row" onclick="openPrimaModal()"><div class="set-ico" style="background:#fffde7">&#127873;</div><div class="set-inf"><div class="set-ttl">Planificar prima</div><div class="set-sub">Junio y diciembre aprox ${fmt(PRIMA())}</div></div><span class="set-arr">&#8250;</span></div></div>
     <div class="shdr"><span class="sttl">Cadena</span></div>
     <div class="set-section"><div class="set-row" onclick="openCadConf()"><div class="set-ico" style="background:var(--ibg)">&#128279;</div><div class="set-inf"><div class="set-ttl">Configurar cadena</div></div><span class="set-arr">&#8250;</span></div></div>
+    <div class="shdr"><span class="sttl">Apariencia</span></div>
+    <div class="set-section"><div class="set-row" onclick="toggleTheme()"><div class="set-ico" style="background:var(--ibg)">${gTheme()==='dark'?'🌙':'☀️'}</div><div class="set-inf"><div class="set-ttl">Modo oscuro</div><div class="set-sub">${gTheme()==='dark'?'Activado':'Toca para activar'}</div></div><span class="set-arr">${gTheme()==='dark'?'&#10003;':'&#8250;'}</span></div></div>
     <div class="shdr"><span class="sttl">Seguridad</span></div>
     <div class="set-section" id="pin-setting"></div>
     <div class="shdr"><span class="sttl">Info</span></div>
@@ -972,6 +986,9 @@ document.addEventListener('keydown', e => {
   if(e.key >= '0' && e.key <= '9') pinKey(e.key);
   if(e.key === 'Backspace') pinDel();
 });
+
+// Aplicar tema guardado antes de pintar (evita parpadeo)
+applyTheme(gTheme());
 
 // Mostrar PIN al arrancar si está configurado
 (function initPin(){
