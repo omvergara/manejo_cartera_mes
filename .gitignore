@@ -11,3 +11,10 @@ Thumbs.db
 
 # Carpeta de trabajo de capturas (las finales renombradas sí se versionan en docs/)
 docs/Capturas/
+
+# wrangler files
+.wrangler
+.dev.vars*
+!.dev.vars.example
+.env*
+!.env.example
