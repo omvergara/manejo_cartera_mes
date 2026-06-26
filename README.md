@@ -6,9 +6,9 @@
 ![Stack](https://img.shields.io/badge/stack-HTML%20%2B%20CSS%20%2B%20JS%20vanilla-f7df1e)
 ![Dependencias](https://img.shields.io/badge/dependencias-0-success)
 ![Plataforma](https://img.shields.io/badge/mobile--first-iOS%20%2F%20Safari-black)
-[![Deploy](https://img.shields.io/badge/deploy-Netlify-00C7B7)](https://cartera-mes.netlify.app)
+[![Deploy](https://img.shields.io/badge/deploy-Cloudflare%20Pages-F38020)](https://cartera-mes.pages.dev)
 
-### 🔗 En vivo → **[cartera-mes.netlify.app](https://cartera-mes.netlify.app)**
+### 🔗 En vivo → **[cartera-mes.pages.dev](https://cartera-mes.pages.dev)**
 
 Aplicación web progresiva (PWA) de **cartera mensual personal**, pensada para usarse desde el iPhone. Pensada para el contexto financiero colombiano: prima semestral, cadenas de ahorro, FNA, quincenas y nómina.
 
@@ -32,18 +32,19 @@ Aplicación web progresiva (PWA) de **cartera mensual personal**, pensada para u
 
 ## Características
 
-- **Gastos mensuales** con checklist de pagado/pendiente, montos editables e iconos por categoría
+- **Gastos mensuales** con checklist de pagado/pendiente, montos editables, categorías (incluida **Familia**) y **gastos recurrentes** que se arrastran solos a los meses siguientes
+- **Convención de mes** clara: el mes que ves = el mes que el dinero **cubre** (lo pagas el día de nómina del mes anterior); se enseña en el onboarding
+- **Inicio enfocado en lo importante**: el número grande es **lo Libre del mes**, con recordatorio antes de la nómina, botón "apartar para ahorro" y aviso anticipado de la prima
 - **Ahorros planillados** separados de los gastos (FNA, cadenas de ahorro)
-- **Cadena de ahorro** configurable: puestos, fechas quincenales, turnos de cobro y timeline completo
-- **Lista de mercado** por categorías colapsables, con registro del gasto total al terminar
-- **Prima semestral** (junio/diciembre, norma laboral colombiana) con asistente de distribución
-- **Tracker de deuda** (tarjeta de crédito) con proyección de meses para liquidar
-- **Meta de ahorro** con barra de progreso y abonos extra
-- **Historial mensual** con gráfico comparativo y **desglose por categorías**
-- **Modo oscuro** (tema iOS) con un toque en Ajustes
-- **Días para la nómina** visibles en el header de todas las pantallas
+- **Cadenas de ahorro (san) rediseñadas**: **una o varias** cadenas, **varios puestos**, split configurable (no solo 50/50), pago **mensual o quincenal**, y el **cobro del pozo** de tu turno visible
+- **Lista de mercado** por categorías colapsables, con **selector de categoría** al agregar y registro del gasto total al terminar
+- **Prima semestral** (junio/diciembre, norma laboral colombiana) con asistente de distribución y **monto real editable**
+- **Tracker de deuda** (tarjeta) con **interés real (% E.A.)** y meses para liquidar por amortización (avisa si la cuota no cubre ni los intereses)
+- **Meta de ahorro** con barra de progreso, abonos extra y **racha de meses ahorrando**
+- **Historial mensual** con gráfico comparativo y **desglose por categorías**; el histórico **no se distorsiona** si te suben el salario (se congela el sueldo de cada mes)
+- **Bloqueo con PIN** (hash local, nunca viaja al respaldo) y **modo oscuro** (tema iOS)
 - **Exportar**: respaldo JSON completo + histórico CSV para Excel
-- **Importar**: restauración total desde JSON
+- **Importar / restaurar**: reemplazo **atómico** desde JSON o Google Drive (sin dejar datos viejos mezclados)
 - **Google Drive sync** (opcional): respaldo automático en cada cambio + **restauración** desde la nube
 
 ---
@@ -81,14 +82,17 @@ La app navega entre meses (del mes más antiguo con datos hasta el mes actual +1
 index.html  ← TODO: HTML + CSS + JS vanilla en un solo archivo
 │
 ├── localStorage (claves con prefijo "app_")
-│   ├── app_cfg            → salario neto, día de nómina, gasolina estimada
-│   ├── app_{YYYY}_{M}     → gastos de cada mes (M = 0-11, 0 = enero)
-│   ├── app_cd_{YYYY}_{M}  → pagos de cadena del mes
-│   ├── app_ccfg           → configuración de la cadena
+│   ├── app_cfg            → nombre, salario neto, tipo de nómina y día(s)
+│   ├── app_{YYYY}_{M}     → gastos del mes (+ snapshot del salario de ese mes)
+│   ├── app_inc_{YYYY}_{M} → ingresos extra del mes
+│   ├── app_cd_{YYYY}_{M}  → estado de pagos de cadena del mes (v2)
+│   ├── app_ccfg           → cadenas (v2: array con posiciones, splits, frecuencia)
 │   ├── app_mrc            → lista de mercado
-│   ├── app_tc             → tarjeta de crédito (saldo, cuota)
+│   ├── app_tc             → tarjeta de crédito (saldo, cuota, tasa % E.A.)
 │   ├── app_meta           → ahorro total y meta
+│   ├── app_sav_{Y}_{M}    → ahorro registrado por mes (racha y ritmo)
 │   ├── app_prima_{Y}_{M}  → distribución de la prima del semestre
+│   ├── app_pin            → hash del PIN (excluido del respaldo)
 │   ├── app_drive_cid      → Client ID de Google OAuth
 │   └── app_drive_fid      → ID del archivo de respaldo en Drive
 │
@@ -104,13 +108,13 @@ index.html  ← TODO: HTML + CSS + JS vanilla en un solo archivo
 
 ### Requisitos
 - Repo en GitHub (público o privado)
-- Cuenta gratuita de Netlify (o cualquier hosting estático: Vercel, Cloudflare Pages, GitHub Pages)
+- Cuenta gratuita de Cloudflare Pages (o cualquier hosting estático: Netlify, Vercel, GitHub Pages)
 
 ### Pasos
 1. Asegúrate de que `index.html` esté en la raíz del repo.
-2. En Netlify: **Add new site → Import an existing project → GitHub →** selecciona este repo.
-3. **No configures build** (es HTML puro): deja Build command vacío y Publish directory en la raíz. → **Deploy**.
-4. Opcional: cambia el nombre del sitio en *Site settings → Change site name*.
+2. En Cloudflare Pages: **Create application → Pages → Connect to Git →** selecciona este repo.
+3. **No configures build** (es HTML puro): deja Build command vacío y Output directory en la raíz. → **Deploy**.
+4. Opcional: configura un dominio o cambia el subdominio del proyecto.
 
 > Cada `git push` a la rama `main` redespliega automáticamente (~30 s).
 
@@ -124,7 +128,7 @@ index.html  ← TODO: HTML + CSS + JS vanilla en un solo archivo
 4. **Pantalla de consentimiento OAuth →** tipo **Externo →** crear.
    - En *Usuarios de prueba* agrega tu propio correo (evita el proceso de verificación de Google).
 5. **Credenciales → Crear → ID de cliente OAuth → Aplicación web**.
-   - *Orígenes de JavaScript autorizados*: la URL exacta de la app (`https://cartera-mes.netlify.app`, **sin** barra final).
+   - *Orígenes de JavaScript autorizados*: la URL exacta de la app (`https://cartera-mes.pages.dev`, **sin** barra final).
 6. Copia el **Client ID**.
 7. En la app: **Ajustes → Conectar Google Drive →** pega el Client ID → autoriza.
 
@@ -156,7 +160,7 @@ Safari → abre la URL → botón **Compartir** → **Agregar a pantalla de inic
 
 ## Modelo de datos del respaldo
 
-El JSON exportado/importado es un objeto plano `{ clave: valorString }` con todas las claves `app_*` del `localStorage`. Los valores son strings JSON serializados. Para restaurar manualmente desde la consola del navegador:
+El JSON exportado/importado es un objeto plano `{ clave: valorString }` con todas las claves `app_*` del `localStorage` (el **PIN se excluye** a propósito: es un bloqueo local por dispositivo). Los valores son strings JSON serializados. El restaurar reemplaza de forma **atómica** (borra lo anterior antes de escribir). Para restaurar manualmente desde la consola del navegador:
 
 ```js
 const backup = { /* contenido del JSON */ };

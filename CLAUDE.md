@@ -1,9 +1,9 @@
 # CLAUDE.md — Contexto del proyecto Cartera
 
 ## Qué es esto
-PWA de finanzas personales en UN SOLO archivo (`index.html`). HTML + CSS + JS vanilla, cero build, cero dependencias npm. Desplegada en Netlify desde este repo (auto-deploy en push a main).
+PWA de finanzas personales en UN SOLO archivo (`index.html`). HTML + CSS + JS vanilla, cero build, cero dependencias npm. Desplegada en **Cloudflare Pages** desde este repo (auto-deploy en push a main).
 
-- **En vivo:** https://cartera-mes.netlify.app
+- **En vivo:** https://cartera-mes.pages.dev
 - **Repo:** https://github.com/omvergara/manejo_cartera_mes (público)
 - **Capturas:** carpeta `docs/` (ver sección "Capturas" del README)
 
@@ -16,17 +16,30 @@ PWA de finanzas personales en UN SOLO archivo (`index.html`). HTML + CSS + JS va
 
 **Mapa de claves localStorage (NO cambiar nombres ni estructura sin migración):**
 ```
-app_cfg              {neto, nominaDia, gasolina}
-app_{YYYY}_{M}       {gastos:[{id,name,amount,cat,paid,ahorro?}]}  ← M es 0-indexado (0=enero)
-app_cd_{YYYY}_{M}    pagos de cadena del mes [{id,q,desc,det,monto,tuyo,comp,paid}]
-app_ccfg             config cadena {puestos,valor,mesInicio,anioInicio,d1,d2,dPago,t1,t2}
-app_mrc              lista mercado [{id,name,icon,cat,on}]
-app_tc               {saldo, cuota}
+app_cfg              {nombre, neto, tipoNomina:'mensual'|'quincenal', nominaDia | q1,q2}
+app_{YYYY}_{M}       {gastos:[{id,name,amount,cat,paid,ahorro?,anticipado?,recurrente?}], neto?}  ← M 0-indexado (0=enero)
+                     · neto? = snapshot del salario de ese mes (se congela al cambiar el sueldo; ver NETOm)
+                     · recurrente? = el gasto se arrastra a meses nuevos (ver seedGastos)
+app_inc_{YYYY}_{M}   ingresos extra del mes [{id,desc,monto}]
+app_cd_{YYYY}_{M}    estado cadena del mes (v2): {v:2, paid:{'<cadId>|<posId>|d<dia>':true}, cobros:{}}
+                     · NO congela montos: las filas se derivan de app_ccfg cada vez (getCPagos)
+app_ccfg             cadenas (v2): {v:2, cadenas:[{id,nombre,valorCuota,frecuencia,dias:[],diaPago,
+                     puestosGrupo,salenPorPeriodo,mesInicio,anioInicio,
+                     posiciones:[{id,tipo:'propio'|'compartido',miSplit,conQuien,turnoMes,montoPozo}]}]}
+                     · formato viejo {puestos,valor,d1,d2,dPago,t1,t2} se migra solo (migrarCadena)
+app_mrc              lista mercado [{id,name,icon,cat,on}] · gM() hace merge no-destructivo con DM
+app_tc               {saldo, cuota, tasa}  ← tasa = % E.A. para amortización real (deudaInfo)
 app_meta             {total, metaCasa}
-app_prima_{Y}_{M}    distribución de prima
+app_prima_{Y}_{M}    distribución de prima {real, tc, fna, libre, fecha}
+app_pin              hash del PIN (sha256:… ó plain:…). EXCLUIDO del backup (getAllData lo omite)
 app_drive_cid        Client ID OAuth
 app_drive_fid        file ID del respaldo en Drive
+cartera_prerestore   (sin prefijo app_) snapshot de seguridad antes de un restore atómico
 ```
+
+**Convención de mes:** el mes mostrado = el mes que el dinero CUBRE, no el que se paga. Lo que se paga el día de nómina (p.ej. 25) cubre el mes siguiente; se registra bajo ese mes. La cadena se paga el `diaPago` del mes anterior al que cubre.
+
+**Escritura segura:** usar `safeSet(k,v)` (captura QuotaExceededError) en vez de `localStorage.setItem` directo; los setters (`sD/sCfgApp/sM/sTc/sMeta/sInc`) ya lo hacen y llaman `autoSync()`. `replaceAllData(obj)` hace restore ATÓMICO (borra claves app_ excepto el PIN, valida y escribe) — usado por import y restore de Drive.
 
 ## Reglas de oro
 1. **NUNCA** cambiar el prefijo `app_` ni renombrar claves existentes — rompería los datos de usuarios activos. Si una migración es inevitable, escribir código que lea la clave vieja y escriba la nueva.
@@ -40,7 +53,7 @@ app_drive_fid        file ID del respaldo en Drive
 ## Convenciones del código
 - Funciones de render por pantalla: `rInicio()`, `rGastos()`, `rCadena()`, `rMercado()`, `rMas()` (análisis), `rAjustes()`
 - `renderAll()` redibuja la pantalla activa y los badges; llamarla tras cualquier mutación de estado
-- Getters/setters de storage: `gD()/sD()` (mes actual), `gM()/sM()` (mercado), `gTc()/sTc()`, `gMeta()/sMeta()`, `gCfg()` (cadena), `gCfgApp()/sCfgApp()` (config usuario)
+- Getters/setters de storage: `gD()/sD()` (mes actual), `gM()/sM()` (mercado), `gTc()/sTc()`, `gMeta()/sMeta()`, `getCadenas()/setCadenas()` (cadenas v2), `gInc()/sInc()` (ingresos extra), `gCfgApp()/sCfgApp()` (config usuario). Helpers cadena: `getCPagos()` (filas derivadas del mes), `cobrosMes()` (pozos del mes), `cadDuracion/cadIdxMes/cadPozo`. Salario por mes: `NETOm(y,m)`. Deuda: `deudaInfo()/tasaMensualDe()`.
 - Modales: overlays con ids `ov-*`, abrir/cerrar con `openOv(id)/closeOv(id)`
 - Botones flotantes (FAB): se crean dinámicamente en cada render y se destruyen en `renderAll()` — son circulares minimalistas (54px, solo icono)
 - Navegación de meses: limitada entre el mes más antiguo con datos (`earliestDataMonth()`) y mes actual+1; `goToday()` vuelve al actual
@@ -62,7 +75,7 @@ app_drive_fid        file ID del respaldo en Drive
 `node test/smoke.mjs` — verifica que el JS embebido compile y que el nombre del usuario se escape (anti-XSS). Requiere Node 18+ y Chrome/Edge instalado. Sale con código 0 si pasa (apto para CI).
 
 ## Deploy
-`git push` a main → Netlify redespliega (~30s). No hay pipeline de build.
+`git push` a main → Cloudflare Pages redespliega (~30s). No hay pipeline de build.
 
 ## Backlog conocido
 - Recordatorios in-app (nómina, cadena) — NO push del sistema: la app es serverless y el push real exige un backend con VAPID/web-push
