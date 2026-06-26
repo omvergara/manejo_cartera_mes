@@ -63,7 +63,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .mgrid{display:grid;grid-template-columns:1fr 1fr;gap:8px;padding:10px 16px 0}
 .mc{background:var(--card);border-radius:14px;padding:12px 14px;border:0.5px solid var(--bdr)}
 .mc-l{font-size:11px;color:var(--t2);font-weight:500;margin-bottom:4px}
-.mc-v{font-size:20px;font-weight:700}
+.mc-v{font-size:17px;font-weight:700}
 .mc-v.ind{color:var(--ind)}.mc-v.grn{color:#2e7d32}.mc-v.red{color:#c62828}.mc-v.amb{color:var(--at)}.mc-v.pur{color:var(--pur)}
 .pbg{background:#e8e8ee;border-radius:4px;height:6px;overflow:hidden;margin:6px 0 2px}
 .pfill{height:6px;border-radius:4px;transition:width .4s}
@@ -213,7 +213,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .prima-monto{font-size:28px;font-weight:700;margin-bottom:4px}
 .overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:300;align-items:center;justify-content:center;padding:16px}
 .overlay.open{display:flex}
-.modal{background:var(--card);border-radius:18px;padding:20px;width:100%;max-width:460px;max-height:88vh;overflow-y:auto;box-shadow:0 10px 40px rgba(0,0,0,.3)}
+.modal{background:var(--card);border-radius:18px;padding:20px;width:100%;max-width:500px;max-height:88vh;overflow-y:auto;box-shadow:0 10px 40px rgba(0,0,0,.3)}
 .mttl{font-size:17px;font-weight:600;margin-bottom:4px}
 .msub{font-size:13px;color:var(--t2);margin-bottom:16px;line-height:1.5}
 .modal label{display:block;font-size:12px;color:var(--t2);margin-bottom:4px;margin-top:12px}
@@ -248,7 +248,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 /* resumen ingresos */
 .ing-resumen{background:linear-gradient(135deg,#2e7d32,#388e3c);border-radius:16px;padding:14px 16px;margin:10px 16px 0;color:#fff;display:flex;justify-content:space-between;align-items:center}
 .ing-lbl{font-size:11px;opacity:.8;margin-bottom:2px}
-.ing-val{font-size:20px;font-weight:700}
+.ing-val{font-size:15px;font-weight:700}
 .ing-sep{width:0.5px;background:rgba(255,255,255,.3);height:36px}
 
 /* ── PIN LOCK ─────────────────────────────────────── */
@@ -370,11 +370,11 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
     <label>Nombre</label><input type="text" id="og-nom" placeholder="Ej: Arriendo">
     <label>Monto ($)</label><input type="number" id="og-mnt" placeholder="700000" inputmode="numeric">
     <label style="margin-bottom:8px">Tipo</label>
-    <div class="toggle-row" style="flex-wrap:wrap">
-      <button type="button" class="tgl-opt on" id="ogt-ef" onclick="ogSetTipo('efectivo')" style="font-size:13px">💵 Efectivo</button>
-      <button type="button" class="tgl-opt" id="ogt-ah" onclick="ogSetTipo('ahorro')" style="font-size:13px">🏦 Ahorro</button>
-      <button type="button" class="tgl-opt" id="ogt-tc" onclick="ogSetTipo('tarjeta')" style="font-size:13px">💳 Compra TC</button>
-      <button type="button" class="tgl-opt" id="ogt-ab" onclick="ogSetTipo('abono')" style="font-size:13px">💸 Pago TC</button>
+    <div class="toggle-row" style="flex-wrap:wrap;gap:6px">
+      <button type="button" class="tgl-opt on" id="ogt-ef" onclick="ogSetTipo('efectivo')" style="flex:1 1 45%;font-size:13px;padding:10px 4px">💵 Efectivo</button>
+      <button type="button" class="tgl-opt" id="ogt-ah" onclick="ogSetTipo('ahorro')" style="flex:1 1 45%;font-size:13px;padding:10px 4px">🏦 Ahorro</button>
+      <button type="button" class="tgl-opt" id="ogt-tc" onclick="ogSetTipo('tarjeta')" style="flex:1 1 45%;font-size:13px;padding:10px 4px">💳 Compra TC</button>
+      <button type="button" class="tgl-opt" id="ogt-ab" onclick="ogSetTipo('abono')" style="flex:1 1 45%;font-size:13px;padding:10px 4px">💸 Pago TC</button>
     </div>
     <div id="og-cat-wrap"><label>Categoría</label>
     <select id="og-cat">
@@ -782,10 +782,10 @@ function rInicio(){
     ${heroRight}
   </div>
   <div class="mgrid">
-    <div class="mc"><div class="mc-l">📋 Compromisos</div><div class="mc-v ind">${fmtM(tc)}</div></div>
-    <div class="mc"><div class="mc-l">🆓 Libre</div><div class="mc-v ${libre>=0?'grn':'red'}">${fmtM(libre)}</div></div>
-    <div class="mc"><div class="mc-l">✅ Pagado</div><div class="mc-v grn">${fmtM(paid)}</div></div>
-    <div class="mc"><div class="mc-l">⏳ Pendiente</div><div class="mc-v ${pending>0?'amb':'grn'}">${fmtM(pending)}</div></div>
+    <div class="mc"><div class="mc-l">📋 Compromisos</div><div class="mc-v ind">${fmt(tc)}</div></div>
+    <div class="mc"><div class="mc-l">🆓 Libre</div><div class="mc-v ${libre>=0?'grn':'red'}">${fmt(libre)}</div></div>
+    <div class="mc"><div class="mc-l">✅ Pagado</div><div class="mc-v grn">${fmt(paid)}</div></div>
+    <div class="mc"><div class="mc-l">⏳ Pendiente</div><div class="mc-v ${pending>0?'amb':'grn'}">${fmt(pending)}</div></div>
   </div>
   <div class="content">
     <div style="background:var(--card);border-radius:14px;padding:12px 14px;border:0.5px solid var(--bdr);margin-bottom:10px">
@@ -811,11 +811,11 @@ function rGastos(){
   const incRow=i=>{const safeDesc=esc(i.desc);return `<div class="inc-row"><div class="inc-ico">&#128181;</div><div class="inc-inf" onclick="openEditIngreso('${i.id}')"><div class="inc-nm">${safeDesc}</div><div class="inc-sb">${esc(i.cat||'Otros')}</div></div><div class="inc-amt">${fmt(i.monto)}</div><button class="del" data-id="${i.id}" data-name="${safeDesc}" onclick="delIngreso(this)">&#215;</button></div>`;}
   const futureBanner=isFuture()?`<div class="tip ind" style="margin-bottom:10px"><span class="ti">⚡</span><div class="tb"><b>Mes futuro</b> — planificando ${MNS[curM]}. Gastos se pagan en ${curM===0?MNS[11]:MNS[curM-1]}.</div></div>`:'';
   document.getElementById('s-gastos').innerHTML=rHdr('Gastos',true)+`
-  <div class="ing-resumen"><div><div class="ing-lbl">💵 Ingresos</div><div class="ing-val">${fmtM(ingTot)}</div></div><div class="ing-sep"></div><div><div class="ing-lbl">🧾 Egresos</div><div class="ing-val">${fmtM(C.tc)}</div></div><div class="ing-sep"></div><div><div class="ing-lbl">🆓 Libre</div><div class="ing-val">${fmtM(C.libre)}</div></div></div>
+  <div class="ing-resumen"><div><div class="ing-lbl">💵 Ingresos</div><div class="ing-val">${fmt(ingTot)}</div></div><div class="ing-sep"></div><div><div class="ing-lbl">🧾 Egresos</div><div class="ing-val">${fmt(C.tc)}</div></div><div class="ing-sep"></div><div><div class="ing-lbl">🆓 Libre</div><div class="ing-val">${fmt(C.libre)}</div></div></div>
   <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;padding:10px 16px 0">
-    <div class="mc" style="padding:10px"><div class="mc-l" style="font-size:10px">Comprometido</div><div class="mc-v ind" style="font-size:16px">${fmtM(C.tc)}</div></div>
-    <div class="mc" style="padding:10px"><div class="mc-l" style="font-size:10px">Pagado</div><div class="mc-v grn" style="font-size:16px">${fmtM(C.paid)}</div></div>
-    <div class="mc" style="padding:10px"><div class="mc-l" style="font-size:10px">Pendiente</div><div class="mc-v amb" style="font-size:16px">${fmtM(C.pending)}</div></div>
+    <div class="mc" style="padding:10px"><div class="mc-l" style="font-size:10px">Comprometido</div><div class="mc-v ind" style="font-size:13px">${fmt(C.tc)}</div></div>
+    <div class="mc" style="padding:10px"><div class="mc-l" style="font-size:10px">Pagado</div><div class="mc-v grn" style="font-size:13px">${fmt(C.paid)}</div></div>
+    <div class="mc" style="padding:10px"><div class="mc-l" style="font-size:10px">Pendiente</div><div class="mc-v amb" style="font-size:13px">${fmt(C.pending)}</div></div>
   </div>
   <div class="content" style="padding-bottom:80px">
     ${futureBanner}
@@ -1064,7 +1064,7 @@ function metaAdd(){const ms=gMetas();ms.push({id:'g'+Date.now(),nombre:'Nueva me
 function metaUpd(id,f,v){const ms=gMetas();const m=ms.find(x=>x.id===id);if(!m)return;m[f]=(f==='nombre'||f==='icono')?v:(parseInt(v)||0);sMetas(ms);if(f!=='nombre'&&f!=='icono')metasCfgRender();renderAll();}
 function metaDel(id){const m=gMetas().find(x=>x.id===id);showConfirm('¿Eliminar la meta?',(m?'"'+m.nombre+'" ':'')+'Se borra su progreso.',()=>{sMetas(gMetas().filter(x=>x.id!==id));metasCfgRender();renderAll();});}
 function openMetasCfg(){metasCfgRender();openOv('ov-metas');}
-function metasCfgRender(){const body=document.getElementById('metas-body');if(!body)return;let h=gMetas().map(m=>{const p=m.meta?Math.min(100,Math.round((m.total/m.meta)*100)):0;const falta=Math.max(0,(+m.meta||0)-(+m.total||0));const xmes=(m.plazoMeses>0&&falta>0)?`<div style="font-size:12px;color:var(--teal);margin-top:6px">Ahorra ~${fmt(Math.ceil(falta/m.plazoMeses))}/mes para llegar en ${m.plazoMeses} meses.</div>`:'';return `<div style="border:0.5px solid var(--bdr);border-radius:12px;padding:12px;margin-bottom:10px"><div style="display:flex;gap:8px;align-items:center"><input class="tinp" style="width:46px;text-align:center" value="${esc(m.icono||'🐷')}" onchange="metaUpd('${m.id}','icono',this.value)"><input class="tinp" style="flex:1;width:auto;text-align:left" value="${esc(m.nombre)}" onchange="metaUpd('${m.id}','nombre',this.value)"><button class="del" onclick="metaDel('${m.id}')">×</button></div><div class="trw"><span class="tlbl2">Objetivo</span><input class="tinp" type="number" inputmode="numeric" value="${m.meta||0}" onchange="metaUpd('${m.id}','meta',this.value)"></div><div class="trw"><span class="tlbl2">Plazo (meses, opcional)</span><input class="tinp" type="number" inputmode="numeric" value="${m.plazoMeses||0}" onchange="metaUpd('${m.id}','plazoMeses',this.value)"></div><div class="trw"><span class="tlbl2">Ahorrado</span><span class="tval grn">${fmt(m.total||0)}${m.meta?` · ${p}%`:''}</span></div>${m.meta?`<div class="pbg" style="height:8px;margin:6px 0"><div class="pfill" style="width:${p}%;background:var(--teal);height:8px"></div></div>`:''}${xmes}</div>`;}).join('')||'<div style="font-size:13px;color:var(--t3);margin-bottom:10px">Sin metas. Crea una (ej. FNA, Casa, Emergencia).</div>';h+=`<button class="bcancel" style="width:100%" onclick="metaAdd()">＋ Nueva meta</button><div style="font-size:12px;color:var(--t2);margin-top:10px;line-height:1.5">💡 El "ahorrado" sube solo cuando marcas un gasto tipo 🏦 Ahorro hacia esta meta.</div>`;body.innerHTML=h;}
+function metasCfgRender(){const body=document.getElementById('metas-body');if(!body)return;let h=gMetas().map(m=>{const p=m.meta?Math.min(100,Math.round((m.total/m.meta)*100)):0;const falta=Math.max(0,(+m.meta||0)-(+m.total||0));const xmes=(m.plazoMeses>0&&falta>0)?`<div style="font-size:12px;color:var(--teal);margin-top:6px">Ahorra ~${fmt(Math.ceil(falta/m.plazoMeses))}/mes para llegar en ${m.plazoMeses} meses.</div>`:'';return `<div style="border:0.5px solid var(--bdr);border-radius:12px;padding:12px;margin-bottom:10px"><div style="display:flex;gap:8px;align-items:center"><input class="tinp" style="width:46px;text-align:center" value="${esc(m.icono||'🐷')}" onchange="metaUpd('${m.id}','icono',this.value)"><input class="tinp" style="flex:1;width:auto;text-align:left" value="${esc(m.nombre)}" onchange="metaUpd('${m.id}','nombre',this.value)"><button class="del" onclick="metaDel('${m.id}')">×</button></div><div class="trw"><span class="tlbl2">Objetivo</span><input class="tinp" type="number" inputmode="numeric" value="${m.meta||0}" onchange="metaUpd('${m.id}','meta',this.value)"></div><div class="trw"><span class="tlbl2">Plazo (meses, opcional)</span><input class="tinp" type="number" inputmode="numeric" value="${m.plazoMeses||0}" onchange="metaUpd('${m.id}','plazoMeses',this.value)"></div><div class="trw"><span class="tlbl2">Ahorrado hoy</span><input class="tinp" type="number" inputmode="numeric" value="${m.total||0}" onchange="metaUpd('${m.id}','total',this.value)"></div>${m.meta?`<div style="text-align:right;font-size:12px;color:var(--teal);font-weight:600;margin-top:2px">${p}%</div><div class="pbg" style="height:8px;margin:6px 0"><div class="pfill" style="width:${p}%;background:var(--teal);height:8px"></div></div>`:''}${xmes}</div>`;}).join('')||'<div style="font-size:13px;color:var(--t3);margin-bottom:10px">Sin metas. Crea una (ej. FNA, Casa, Emergencia).</div>';h+=`<button class="bcancel" style="width:100%" onclick="metaAdd()">＋ Nueva meta</button><div style="font-size:12px;color:var(--t2);margin-top:10px;line-height:1.5">💡 Pon aquí lo que ya tienes ahorrado. Después sube solo cuando marcas un gasto tipo 🏦 Ahorro hacia esta meta.</div>`;body.innerHTML=h;}
 // Aplica/revierte el efecto de un gasto en la deuda de una tarjeta o en una meta de ahorro.
 // Idempotente: _tcApplied={id,amt} y _metaApplied={id,amt} marcan lo ya aplicado.
 function reconcileGasto(g){
@@ -1087,7 +1087,7 @@ let _ogTipo='efectivo';
 function ogSetTipo(t){_ogTipo=t;[['ef','efectivo'],['ah','ahorro'],['tc','tarjeta'],['ab','abono']].forEach(p=>document.getElementById('ogt-'+p[0]).classList.toggle('on',t===p[1]));document.getElementById('og-cat-wrap').style.display=(t==='ahorro'||t==='abono')?'none':'';document.getElementById('og-meta-wrap').style.display=(t==='ahorro')?'':'none';document.getElementById('og-tcid-wrap').style.display=(t==='tarjeta'||t==='abono')?'':'none';const h=document.getElementById('og-tc-hint');if(t==='tarjeta'){h.style.display='';h.textContent='💳 Suma a la deuda de esa tarjeta; no usa tu efectivo del mes.';}else if(t==='abono'){h.style.display='';h.textContent='💸 Baja la deuda de esa tarjeta y usa tu efectivo del mes (cuenta como gasto).';}else h.style.display='none';}
 function openAdd(){editId=null;document.getElementById('ogt').textContent='Agregar gasto';document.getElementById('og-nom').value='';document.getElementById('og-mnt').value='';document.getElementById('og-cat').value='Otros';document.getElementById('og-rec').checked=false;fillMetaSelect('og-meta');fillTcSelect('og-tcid');ogSetTipo('efectivo');openOv('ov-gasto');setTimeout(()=>document.getElementById('og-nom').focus(),150);}
 function openEdit(id){const d=gD();const g=d.gastos.find(x=>x.id===id);if(!g)return;editId=id;document.getElementById('ogt').textContent='Editar '+g.name;document.getElementById('og-nom').value=g.name;document.getElementById('og-mnt').value=g.amount;document.getElementById('og-cat').value=g.cat||'Otros';document.getElementById('og-rec').checked=!!g.recurrente;fillMetaSelect('og-meta',g.metaId);fillTcSelect('og-tcid',g.tcId);ogSetTipo(g.tarjeta?'tarjeta':(g.abonoTc?'abono':(g.ahorro?'ahorro':'efectivo')));openOv('ov-gasto');}
-function saveGasto(){const name=document.getElementById('og-nom').value.trim();const amount=parseInt(document.getElementById('og-mnt').value)||0;const cat=document.getElementById('og-cat').value;const recurrente=document.getElementById('og-rec').checked;const ah=(_ogTipo==='ahorro');const tarjeta=(_ogTipo==='tarjeta');const abonoTc=(_ogTipo==='abono');const metaId=ah?(document.getElementById('og-meta')?document.getElementById('og-meta').value:''):'';const tcId=(tarjeta||abonoTc)?(document.getElementById('og-tcid')?document.getElementById('og-tcid').value:''):'';const catF=ah?'Ahorro':(abonoTc?'Deuda':cat);if(!name)return;const d=gD();let g;if(editId){g=d.gastos.find(x=>x.id===editId);if(g){g.name=name;g.amount=amount;g.cat=catF;g.ahorro=ah;g.recurrente=recurrente;g.tarjeta=tarjeta;g.abonoTc=abonoTc;g.metaId=metaId;g.tcId=tcId;g.anticipado=false;}}else{g={id:'g_'+Date.now(),name,amount,cat:catF,paid:false,ahorro:ah,recurrente,tarjeta,abonoTc,metaId,tcId};d.gastos.push(g);}if(g)reconcileGasto(g);sD(d);closeOv('ov-gasto');renderAll();}
+function saveGasto(){const name=document.getElementById('og-nom').value.trim();const amount=parseInt(document.getElementById('og-mnt').value)||0;const cat=document.getElementById('og-cat').value;const recurrente=document.getElementById('og-rec').checked;const ah=(_ogTipo==='ahorro');const tarjeta=(_ogTipo==='tarjeta');const abonoTc=(_ogTipo==='abono');const metaId=ah?(document.getElementById('og-meta')?document.getElementById('og-meta').value:''):'';const tcId=(tarjeta||abonoTc)?(document.getElementById('og-tcid')?document.getElementById('og-tcid').value:''):'';const catF=ah?'Ahorro':(abonoTc?'Deuda':cat);if(!name)return;const d=gD();let g;if(editId){g=d.gastos.find(x=>x.id===editId);if(g){g.name=name;g.amount=amount;g.cat=catF;g.ahorro=ah;g.recurrente=recurrente;g.tarjeta=tarjeta;g.abonoTc=abonoTc;g.metaId=metaId;g.tcId=tcId;g.anticipado=false;}}else{g={id:'g_'+Date.now(),name,amount,cat:catF,paid:(tarjeta||abonoTc)?true:false,ahorro:ah,recurrente,tarjeta,abonoTc,metaId,tcId};d.gastos.push(g);}if(g)reconcileGasto(g);sD(d);closeOv('ov-gasto');renderAll();}
 function delGasto(btn){const id=btn.dataset.id;const name=btn.dataset.name;confDel(id,name);}
 function confDel(id,name){showConfirm('¿Eliminar "'+name+'"?','Se quitará de este mes. No se puede deshacer.',()=>{const d=gD();const g=d.gastos.find(x=>x.id===id);if(g){g.tarjeta=false;g.ahorro=false;g.abonoTc=false;g.metaId='';reconcileGasto(g);}d.gastos=d.gastos.filter(x=>x.id!==id);sD(d);renderAll();});}
 function openOv(id){document.getElementById(id).classList.add('open');}
