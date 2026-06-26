@@ -381,6 +381,9 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
     <label style="display:flex;align-items:center;gap:8px;margin-top:14px;cursor:pointer"><input type="checkbox" id="og-ahorro" style="width:auto"> Es ahorro planillado (FNA, cadena, etc.)</label>
     <label style="display:flex;align-items:center;gap:8px;margin-top:10px;cursor:pointer"><input type="checkbox" id="og-ant" style="width:auto"> ⚡ Gasto anticipado (se paga este mes, es del siguiente)</label>
     <label style="display:flex;align-items:center;gap:8px;margin-top:10px;cursor:pointer"><input type="checkbox" id="og-rec" style="width:auto"> 🔁 Gasto recurrente (se copia solo a los próximos meses)</label>
+    <label style="display:flex;align-items:center;gap:8px;margin-top:10px;cursor:pointer"><input type="checkbox" id="og-tc" style="width:auto"> 💳 Con tarjeta de crédito (al pagarlo suma a la deuda, no gasta tu efectivo)</label>
+    <label>↳ Si es ahorro, al pagarlo súmalo a la meta:</label>
+    <select id="og-meta"></select>
     <div class="mbtns"><button class="bcancel" onclick="closeOv('ov-gasto')">Cancelar</button><button class="bsave" onclick="saveGasto()">Guardar</button></div>
   </div>
 </div>
@@ -541,7 +544,7 @@ function seedGastos(y,m){
   for(let i=1;i<=12;i++){
     let py=y,pm=m-i;while(pm<0){pm+=12;py--;}
     const r=localStorage.getItem(key(py,pm));
-    if(r){try{return (JSON.parse(r).gastos||[]).filter(g=>g.recurrente).map(g=>({...g,paid:false,anticipado:false}));}catch(e){return [];}}
+    if(r){try{return (JSON.parse(r).gastos||[]).filter(g=>g.recurrente).map(g=>({...g,paid:false,anticipado:false,_tcAmt:undefined,_metaApplied:undefined}));}catch(e){return [];}}
   }
   return DG.map(g=>({...g}));
 }
@@ -707,13 +710,13 @@ function deudaInfo(saldo,cuota,i){
 }
 function calcT(){
   const d=gD();let tot=0,paid=0,ah=0;
-  d.gastos.forEach(g=>{if(g.ahorro)ah+=g.amount;else tot+=g.amount;if(g.paid)paid+=g.amount;});
+  d.gastos.forEach(g=>{if(g.tarjeta)return;if(g.ahorro)ah+=g.amount;else tot+=g.amount;if(g.paid)paid+=g.amount;});
 
   const extInc=totalIngresos();
   const neto=NETOm(curY,curM);
   return{tot,paid,pending:(tot+ah)-paid,libre:(neto+extInc)-(tot+ah),ah,tc:tot+ah,extInc,neto};
 }
-function updBdg(){const d=gD();const pg=d.gastos.filter(g=>!g.paid).length;const pc=getCPagos().filter(p=>!p.paid).length;const pm=gM().filter(x=>x.on).length;[['bdg-g',pg],['bdg-c',pc],['bdg-m',pm]].forEach(([id,n])=>{const el=document.getElementById(id);if(el){el.textContent=n;el.style.display=n>0?'flex':'none';}});}
+function updBdg(){const d=gD();const pg=d.gastos.filter(g=>!g.paid&&!g.tarjeta).length;const pc=getCPagos().filter(p=>!p.paid).length;const pm=gM().filter(x=>x.on).length;[['bdg-g',pg],['bdg-c',pc],['bdg-m',pm]].forEach(([id,n])=>{const el=document.getElementById(id);if(el){el.textContent=n;el.style.display=n>0?'flex':'none';}});}
 function renderAll(){
   if(checkOnboarding())return;
   ['inicio','gastos','cadena','mercado','mas','ajustes'].forEach(s=>document.getElementById('s-'+s).style.display=s===curScreen?'':'none');
@@ -765,7 +768,7 @@ function rInicio(){
   if(primaRec)tips+=`<div class="tip gold"><span class="ti">🎁</span><div class="tb">¡Mes de <b>prima semestral</b>! ~${fmt(PRIMA())}. <span style="color:var(--blue);cursor:pointer;font-weight:500" onclick="openPrimaModal()">Planificarla →</span></div></div>`;
   if(libre<0)tips+=`<div class="tip danger"><span class="ti">🚨</span><div class="tb">Compromisos superan ingresos en <b>${fmt(Math.abs(libre))}</b>.</div></div>`;
   else if(libre<neto*0.1)tips+=`<div class="tip warn"><span class="ti">⚠️</span><div class="tb">Solo quedan <b>${fmt(libre)}</b> libres.</div></div>`;
-  else{tips+=`<div class="tip good"><span class="ti">💚</span><div class="tb">Te quedan <b>${fmt(libre)}</b> libres. ¡Bien!</div></div>`;tips+=`<div class="tip teal"><span class="ti">🐷</span><div class="tb">Págate a ti primero: aparta el 10% (~${fmt(Math.round(libre*0.1))}) antes de gastarlo. <span style="color:var(--blue);cursor:pointer;font-weight:600" onclick="openApartar(${Math.round(libre*0.1)})">Apartar →</span></div></div>`;}
+  else tips+=`<div class="tip good"><span class="ti">💚</span><div class="tb">Te quedan <b>${fmt(libre)}</b> libres. ¡Bien!</div></div>`;
   if(tc2.saldo>0&&tc2.cuota>0){const _di=deudaInfo(tc2.saldo,tc2.cuota,tasaMensualDe(tc2.tasa));tips+=`<div class="tip info"><span class="ti">💳</span><div class="tb">Tarjeta: <b>${fmt(tc2.saldo)}</b>. ${_di.nuncaBaja?`Con ${fmt(tc2.cuota)}/mes <b>la deuda no baja</b> (solo cubre intereses).`:`Con ${fmt(tc2.cuota)}/mes: <b>~${_di.meses} meses</b> para quedar a paz${_di.interesTotal>0?` (${fmt(_di.interesTotal)} en intereses)`:''}.`}</div></div>`;}
   if(mC>0)tips+=`<div class="tip teal"><span class="ti">🏡</span><div class="tb">Meta ahorro: <b>${fmt(tAh)}</b> de ${fmt(mC)} (${pctC}%).</div></div>`;
   if(extInc>0)tips+=`<div class="tip pur"><span class="ti">💜</span><div class="tb">Ingresos extra este mes: <b>${fmt(extInc)}</b>. Total disponible: <b>${fmt(neto+extInc)}</b>.</div></div>`;
@@ -804,27 +807,29 @@ function rInicio(){
 
 // ── GASTOS ────────────────────────────────────────────────
 function rGastos(){
-  const data=gD();const tc=gTc();
-  let allGastos=[...data.gastos];
-  let gs=allGastos.filter(g=>!g.ahorro);let as=allGastos.filter(g=>g.ahorro);
-  if(sortByMonto){gs=[...gs].sort((a,b)=>b.amount-a.amount);as=[...as].sort((a,b)=>b.amount-a.amount);}
-  let tG=0,pG=0;gs.forEach(g=>{tG+=g.amount;if(g.paid)pG+=g.amount;});
+  const data=gD();const C=calcT();
+  let all=[...data.gastos];
+  let gs=all.filter(g=>!g.ahorro&&!g.tarjeta);let as=all.filter(g=>g.ahorro&&!g.tarjeta);let tcs=all.filter(g=>g.tarjeta);
+  if(sortByMonto){const sb=a=>[...a].sort((x,y)=>y.amount-x.amount);gs=sb(gs);as=sb(as);tcs=sb(tcs);}
   const ingresos=gInc();const totalInc=ingresos.reduce((s,i)=>s+i.monto,0);
-  const row=g=>{const safeName=esc(g.name);return `<div class="grow"><button class="chk ${g.paid?'on':''}" onclick="tPaid('${g.id}')"></button><div class="gico" style="background:${gBg(g.name)}">${catIco(g.cat)}</div><div class="ginf" onclick="openEdit('${g.id}')"><div class="gnm ${g.paid?'done':''}">${safeName}</div><div class="gsb">${esc(g.cat||'')}${g.anticipado?'<span class="ant-badge">&#9889; anticipado</span>':''}${g.recurrente?'<span class="ant-badge" style="background:var(--ibg);color:var(--it)">&#128260; recurrente</span>':''}</div></div><div class="gamt ${g.paid?'done':''}" onclick="openEdit('${g.id}')">${fmt(g.amount)}</div><button class="del" data-id="${g.id}" data-name="${safeName}" onclick="delGasto(this)">&#215;</button></div>`;}
+  const tcTotal=tcs.reduce((s,g)=>s+g.amount,0);const ingTot=C.neto+C.extInc;
+  const metaName=id=>{const m=gMetas().find(x=>x.id===id);return m?(m.icono||'🐷')+' '+esc(m.nombre):'meta';};
+  const row=g=>{const safeName=esc(g.name);return `<div class="grow"><button class="chk ${g.paid?'on':''}" onclick="tPaid('${g.id}')"></button><div class="gico" style="background:${gBg(g.name)}">${catIco(g.cat)}</div><div class="ginf" onclick="openEdit('${g.id}')"><div class="gnm ${g.paid?'done':''}">${safeName}</div><div class="gsb">${esc(g.cat||'')}${g.anticipado?'<span class="ant-badge">&#9889; anticipado</span>':''}${g.recurrente?'<span class="ant-badge" style="background:var(--ibg);color:var(--it)">&#128260; recurrente</span>':''}${g.tarjeta?'<span class="ant-badge" style="background:var(--rbg);color:var(--rt)">&#128179; tarjeta</span>':''}${(g.ahorro&&g.metaId)?`<span class="ant-badge" style="background:var(--tbg);color:var(--tt)">&#8594; ${metaName(g.metaId)}</span>`:''}</div></div><div class="gamt ${g.paid?'done':''}" onclick="openEdit('${g.id}')">${fmt(g.amount)}</div><button class="del" data-id="${g.id}" data-name="${safeName}" onclick="delGasto(this)">&#215;</button></div>`;}
   const incRow=i=>{const safeDesc=esc(i.desc);return `<div class="inc-row"><div class="inc-ico">&#128181;</div><div class="inc-inf" onclick="openEditIngreso('${i.id}')"><div class="inc-nm">${safeDesc}</div><div class="inc-sb">Toca para editar</div></div><div class="inc-amt">${fmt(i.monto)}</div><button class="del" data-id="${i.id}" data-name="${safeDesc}" onclick="delIngreso(this)">&#215;</button></div>`;}
   const futureBanner=isFuture()?`<div class="tip ind" style="margin-bottom:10px"><span class="ti">⚡</span><div class="tb"><b>Mes futuro</b> — planificando ${MNS[curM]}. Gastos se pagan en ${curM===0?MNS[11]:MNS[curM-1]}.</div></div>`:'';
   document.getElementById('s-gastos').innerHTML=rHdr('Gastos',true)+`
-  <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;padding:12px 16px 0">
-    <div class="mc" style="padding:10px"><div class="mc-l" style="font-size:10px">Total</div><div class="mc-v ind" style="font-size:16px">${fmtM(tG)}</div></div>
-    <div class="mc" style="padding:10px"><div class="mc-l" style="font-size:10px">Pagado</div><div class="mc-v grn" style="font-size:16px">${fmtM(pG)}</div></div>
-    <div class="mc" style="padding:10px"><div class="mc-l" style="font-size:10px">Pendiente</div><div class="mc-v amb" style="font-size:16px">${fmtM(tG-pG)}</div></div>
+  <div class="ing-resumen"><div><div class="ing-lbl">💵 Ingresos</div><div class="ing-val">${fmtM(ingTot)}</div></div><div class="ing-sep"></div><div><div class="ing-lbl">🧾 Egresos</div><div class="ing-val">${fmtM(C.tc)}</div></div><div class="ing-sep"></div><div><div class="ing-lbl">🆓 Libre</div><div class="ing-val">${fmtM(C.libre)}</div></div></div>
+  <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;padding:10px 16px 0">
+    <div class="mc" style="padding:10px"><div class="mc-l" style="font-size:10px">Comprometido</div><div class="mc-v ind" style="font-size:16px">${fmtM(C.tc)}</div></div>
+    <div class="mc" style="padding:10px"><div class="mc-l" style="font-size:10px">Pagado</div><div class="mc-v grn" style="font-size:16px">${fmtM(C.paid)}</div></div>
+    <div class="mc" style="padding:10px"><div class="mc-l" style="font-size:10px">Pendiente</div><div class="mc-v amb" style="font-size:16px">${fmtM(C.pending)}</div></div>
   </div>
-  ${totalInc>0?`<div class="ing-resumen"><div><div class="ing-lbl">💵 Salario</div><div class="ing-val">${fmtM(NETO())}</div></div><div class="ing-sep"></div><div><div class="ing-lbl">✨ Extras</div><div class="ing-val">${fmtM(totalInc)}</div></div><div class="ing-sep"></div><div><div class="ing-lbl">🏦 Total</div><div class="ing-val">${fmtM(NETO()+totalInc)}</div></div></div>`:''}
   <div class="content" style="padding-bottom:80px">
     ${futureBanner}
     <div class="shdr"><span class="sttl">Gastos del mes</span><button class="sort-btn ${sortByMonto?'on':''}" onclick="sortByMonto=!sortByMonto;rGastos()">↕ ${sortByMonto?'A-Z':'Monto'}</button></div>
     <div class="list">${gs.map(row).join('')||'<div style="padding:20px;text-align:center;color:var(--t3);font-size:13px">Sin gastos. Usa el + para agregar.</div>'}</div>
     ${as.length?`<div class="shdr"><span class="sttl">🏦 Ahorros planillados</span></div><div class="list">${as.map(row).join('')}</div>`:''}
+    ${tcs.length?`<div class="shdr"><span class="sttl">💳 Con tarjeta de crédito</span><span style="font-size:11px;color:var(--t2)">${fmt(tcTotal)}</span></div><div class="list">${tcs.map(row).join('')}</div>`:''}
     <div class="shdr"><span class="sttl">💵 Ingresos extra</span><span style="font-size:11px;color:var(--t2)">${ingresos.length>0?fmt(totalInc):''}</span></div>
     <div class="list">${ingresos.map(incRow).join('')||'<div style="padding:16px;text-align:center;color:var(--t3);font-size:13px">Sin ingresos extra. Usa 💵 para agregar.</div>'}</div>
   </div>`;
@@ -1070,12 +1075,23 @@ function metaAdd(){const ms=gMetas();ms.push({id:'g'+Date.now(),nombre:'Nueva me
 function metaUpd(id,f,v){const ms=gMetas();const m=ms.find(x=>x.id===id);if(!m)return;m[f]=(f==='nombre'||f==='icono')?v:(parseInt(v)||0);sMetas(ms);if(f!=='nombre'&&f!=='icono')renderAll();}
 function metaDel(id){const m=gMetas().find(x=>x.id===id);showConfirm('¿Eliminar la meta?',(m?'"'+m.nombre+'" ':'')+'Se borra su progreso.',()=>{sMetas(gMetas().filter(x=>x.id!==id));renderAll();});}
 function metaAbonar(id){const inp=document.getElementById('ab-'+id);const v=inp?parseInt(inp.value)||0:0;if(!v)return;const ms=gMetas();const m=ms.find(x=>x.id===id);if(!m)return;m.total=(+m.total||0)+v;sMetas(ms);addAhorroMes(v);renderAll();}
-function tPaid(id){const d=gD();const g=d.gastos.find(x=>x.id===id);if(g){g.paid=!g.paid;sD(d);}renderAll();}
-function openAdd(){editId=null;document.getElementById('ogt').textContent='Agregar gasto';document.getElementById('og-nom').value='';document.getElementById('og-mnt').value='';document.getElementById('og-cat').value='Otros';document.getElementById('og-ahorro').checked=false;document.getElementById('og-ant').checked=false;document.getElementById('og-rec').checked=false;openOv('ov-gasto');setTimeout(()=>document.getElementById('og-nom').focus(),150);}
-function openEdit(id){const d=gD();const g=d.gastos.find(x=>x.id===id);if(!g)return;editId=id;document.getElementById('ogt').textContent='Editar '+g.name;document.getElementById('og-nom').value=g.name;document.getElementById('og-mnt').value=g.amount;document.getElementById('og-cat').value=g.cat||'Otros';document.getElementById('og-ahorro').checked=!!g.ahorro;document.getElementById('og-ant').checked=!!g.anticipado;document.getElementById('og-rec').checked=!!g.recurrente;openOv('ov-gasto');}
-function saveGasto(){const name=document.getElementById('og-nom').value.trim();const amount=parseInt(document.getElementById('og-mnt').value)||0;const cat=document.getElementById('og-cat').value;const ah=document.getElementById('og-ahorro').checked;const anticipado=document.getElementById('og-ant').checked;const recurrente=document.getElementById('og-rec').checked;if(!name)return;const d=gD();if(editId){const g=d.gastos.find(x=>x.id===editId);if(g){g.name=name;g.amount=amount;g.cat=cat;g.ahorro=ah;g.anticipado=anticipado;g.recurrente=recurrente;}}else d.gastos.push({id:'g_'+Date.now(),name,amount,cat:ah?'Ahorro':cat,paid:false,ahorro:ah,anticipado,recurrente});sD(d);closeOv('ov-gasto');renderAll();}
+// Aplica/revierte el efecto de un gasto en la deuda de tarjeta o en una meta de ahorro.
+// Idempotente: usa _tcAmt y _metaApplied como marca de lo ya aplicado.
+function reconcileGasto(g){
+  const tcShould=!!(g.tarjeta&&g.paid);
+  if(tcShould){if(g._tcAmt==null){const t=gTc();t.saldo=(+t.saldo||0)+g.amount;sTc(t);g._tcAmt=g.amount;}else if(g._tcAmt!==g.amount){const t=gTc();t.saldo=Math.max(0,(+t.saldo||0)-g._tcAmt+g.amount);sTc(t);g._tcAmt=g.amount;}}
+  else if(g._tcAmt!=null){const t=gTc();t.saldo=Math.max(0,(+t.saldo||0)-g._tcAmt);sTc(t);delete g._tcAmt;}
+  const mShould=!!(g.ahorro&&g.paid&&g.metaId);const ap=g._metaApplied;
+  if(mShould){if(!ap||ap.id!==g.metaId||ap.amt!==g.amount){if(ap){const ms=gMetas();const pm=ms.find(x=>x.id===ap.id);if(pm){pm.total=Math.max(0,(+pm.total||0)-ap.amt);sMetas(ms);}}const ms2=gMetas();const m=ms2.find(x=>x.id===g.metaId);if(m){m.total=(+m.total||0)+g.amount;sMetas(ms2);if(!ap)addAhorroMes(g.amount);}g._metaApplied={id:g.metaId,amt:g.amount};}}
+  else if(ap){const ms=gMetas();const pm=ms.find(x=>x.id===ap.id);if(pm){pm.total=Math.max(0,(+pm.total||0)-ap.amt);sMetas(ms);}delete g._metaApplied;}
+}
+function fillMetaSelect(elId,sel){const el=document.getElementById(elId);if(!el)return;const ms=gMetas();el.innerHTML=ms.length?ms.map(m=>`<option value="${m.id}">${m.icono||'🐷'} ${esc(m.nombre)}</option>`).join(''):'<option value="">(crea una meta en Ajustes)</option>';if(sel)el.value=sel;}
+function tPaid(id){const d=gD();const g=d.gastos.find(x=>x.id===id);if(g){g.paid=!g.paid;reconcileGasto(g);sD(d);}renderAll();}
+function openAdd(){editId=null;document.getElementById('ogt').textContent='Agregar gasto';document.getElementById('og-nom').value='';document.getElementById('og-mnt').value='';document.getElementById('og-cat').value='Otros';document.getElementById('og-ahorro').checked=false;document.getElementById('og-ant').checked=false;document.getElementById('og-rec').checked=false;document.getElementById('og-tc').checked=false;fillMetaSelect('og-meta');openOv('ov-gasto');setTimeout(()=>document.getElementById('og-nom').focus(),150);}
+function openEdit(id){const d=gD();const g=d.gastos.find(x=>x.id===id);if(!g)return;editId=id;document.getElementById('ogt').textContent='Editar '+g.name;document.getElementById('og-nom').value=g.name;document.getElementById('og-mnt').value=g.amount;document.getElementById('og-cat').value=g.cat||'Otros';document.getElementById('og-ahorro').checked=!!g.ahorro;document.getElementById('og-ant').checked=!!g.anticipado;document.getElementById('og-rec').checked=!!g.recurrente;document.getElementById('og-tc').checked=!!g.tarjeta;fillMetaSelect('og-meta',g.metaId);openOv('ov-gasto');}
+function saveGasto(){const name=document.getElementById('og-nom').value.trim();const amount=parseInt(document.getElementById('og-mnt').value)||0;const cat=document.getElementById('og-cat').value;const ah=document.getElementById('og-ahorro').checked;const anticipado=document.getElementById('og-ant').checked;const recurrente=document.getElementById('og-rec').checked;const tarjeta=document.getElementById('og-tc').checked;const metaId=document.getElementById('og-meta')?document.getElementById('og-meta').value:'';if(!name)return;const d=gD();let g;if(editId){g=d.gastos.find(x=>x.id===editId);if(g){g.name=name;g.amount=amount;g.cat=cat;g.ahorro=ah;g.anticipado=anticipado;g.recurrente=recurrente;g.tarjeta=tarjeta;g.metaId=metaId;}}else{g={id:'g_'+Date.now(),name,amount,cat:ah?'Ahorro':cat,paid:false,ahorro:ah,anticipado,recurrente,tarjeta,metaId};d.gastos.push(g);}if(g)reconcileGasto(g);sD(d);closeOv('ov-gasto');renderAll();}
 function delGasto(btn){const id=btn.dataset.id;const name=btn.dataset.name;confDel(id,name);}
-function confDel(id,name){showConfirm('¿Eliminar "'+name+'"?','Se quitará de este mes. No se puede deshacer.',()=>{const d=gD();d.gastos=d.gastos.filter(x=>x.id!==id);sD(d);renderAll();});}
+function confDel(id,name){showConfirm('¿Eliminar "'+name+'"?','Se quitará de este mes. No se puede deshacer.',()=>{const d=gD();const g=d.gastos.find(x=>x.id===id);if(g){g.tarjeta=false;g.ahorro=false;g.metaId='';reconcileGasto(g);}d.gastos=d.gastos.filter(x=>x.id!==id);sD(d);renderAll();});}
 function openOv(id){document.getElementById(id).classList.add('open');}
 function closeOv(id){document.getElementById(id).classList.remove('open');}
 function showConfirm(t,s,cb){document.getElementById('ct').textContent=t;document.getElementById('cs').textContent=s;ccb=cb;openOv('ov-confirm');}

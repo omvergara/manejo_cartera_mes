@@ -17,7 +17,10 @@ PWA de finanzas personales en UN SOLO archivo (`index.html`). HTML + CSS + JS va
 **Mapa de claves localStorage (NO cambiar nombres ni estructura sin migración):**
 ```
 app_cfg              {nombre, neto, tipoNomina:'mensual'|'quincenal', nominaDia | q1,q2}
-app_{YYYY}_{M}       {gastos:[{id,name,amount,cat,paid,ahorro?,anticipado?,recurrente?}], neto?}  ← M 0-indexado (0=enero)
+app_{YYYY}_{M}       {gastos:[{id,name,amount,cat,paid,ahorro?,anticipado?,recurrente?,tarjeta?,metaId?,_tcAmt?,_metaApplied?}], neto?}  ← M 0-indexado
+                     · tarjeta? = pagado con tarjeta: suma a app_tc.saldo (reconcileGasto) y NO entra a la caja del mes (calcT lo salta)
+                     · ahorro?+metaId? = al marcar pagado suma a esa meta de app_metas (reconcileGasto)
+                     · _tcAmt/_metaApplied = marcas internas de idempotencia (no tocar)
                      · neto? = snapshot del salario de ese mes (se congela al cambiar el sueldo; ver NETOm)
                      · recurrente? = el gasto se arrastra a meses nuevos (ver seedGastos)
 app_inc_{YYYY}_{M}   ingresos extra del mes [{id,desc,monto}]
