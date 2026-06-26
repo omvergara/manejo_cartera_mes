@@ -32,8 +32,9 @@ app_ccfg             cadenas (v2): {v:2, cadenas:[{id,nombre,valorCuota,frecuenc
                      posiciones:[{id,tipo:'propio'|'compartido',miSplit,conQuien,turnoMes,montoPozo}]}]}
                      · formato viejo {puestos,valor,d1,d2,dPago,t1,t2} se migra solo (migrarCadena)
 app_mrc              lista mercado [{id,name,icon,cat,on,price?}] · gM() merge no-destructivo con DM. Al guardar (💾) crea un gasto "Mercado" con el total de precios y pregunta efectivo/tarjeta (saveMrcGasto → reconcileGasto)
-app_tcs              tarjetas MÚLTIPLES: [{id,nombre,saldo,cuota,tasa}] (migra de app_tc). tasa = % MENSUAL.
-                     · deudaInfo() = amortización real mes a mes (último pago parcial); interés correcto. gasto.tcId elige tarjeta
+app_tcs              tarjetas MÚLTIPLES: [{id,nombre,base,cuota,tasa}] (migra de app_tc; saldo viejo→base). tasa = % MENSUAL.
+                     · DEUDA DERIVADA (tcDeuda): base + compras − abonos de gastos (no se muta ni se pisa al editar). gasto.tcId elige tarjeta.
+                     · deudaInfo() = amortización real mes a mes (último pago parcial); interés correcto.
 app_tc               (LEGACY) tarjeta única antigua — se migra a app_tcs
 app_metas            metas de ahorro v2: [{id,nombre,icono,total,meta,plazoMeses?}] (migra de app_meta {total,metaCasa}). Se configuran en modal (ov-metas); el total sube SOLO desde gastos tipo ahorro
 app_sav_{Y}_{M}      (LEGACY) contador viejo de ahorro/mes — ya no se usa; savMes() se calcula de los gastos ahorro pagados del mes
