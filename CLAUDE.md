@@ -17,13 +17,14 @@ PWA de finanzas personales en UN SOLO archivo (`index.html`). HTML + CSS + JS va
 **Mapa de claves localStorage (NO cambiar nombres ni estructura sin migración):**
 ```
 app_cfg              {nombre, neto, tipoNomina:'mensual'|'quincenal', nominaDia | q1,q2}
-app_{YYYY}_{M}       {gastos:[{id,name,amount,cat,paid,ahorro?,anticipado?,recurrente?,tarjeta?,metaId?,_tcAmt?,_metaApplied?}], neto?}  ← M 0-indexado
+app_{YYYY}_{M}       {gastos:[{id,name,amount,cat,paid,ahorro?,recurrente?,tarjeta?,metaId?,_tcAmt?,_metaApplied?}], neto?}  ← M 0-indexado
+                     · TIPO excluyente: efectivo (ninguno) | ahorro (→meta) | tarjeta (→deuda). El modal usa un toggle, no checkboxes sueltos (ogSetTipo)
                      · tarjeta? = pagado con tarjeta: suma a app_tc.saldo (reconcileGasto) y NO entra a la caja del mes (calcT lo salta)
                      · ahorro?+metaId? = al marcar pagado suma a esa meta de app_metas (reconcileGasto)
                      · _tcAmt/_metaApplied = marcas internas de idempotencia (no tocar)
                      · neto? = snapshot del salario de ese mes (se congela al cambiar el sueldo; ver NETOm)
                      · recurrente? = el gasto se arrastra a meses nuevos (ver seedGastos)
-app_inc_{YYYY}_{M}   ingresos extra del mes [{id,desc,monto}]
+app_inc_{YYYY}_{M}   ingresos extra del mes [{id,desc,monto,cat}]  ← cat: Trabajo adicional/Prima/Bono empresa/Obsequio/Otros
 app_cd_{YYYY}_{M}    estado cadena del mes (v2): {v:2, paid:{'<cadId>|<posId>|d<dia>':true}, cobros:{}}
                      · NO congela montos: las filas se derivan de app_ccfg cada vez (getCPagos)
 app_ccfg             cadenas (v2): {v:2, cadenas:[{id,nombre,valorCuota,frecuencia,dias:[],diaPago,
@@ -32,9 +33,9 @@ app_ccfg             cadenas (v2): {v:2, cadenas:[{id,nombre,valorCuota,frecuenc
                      · formato viejo {puestos,valor,d1,d2,dPago,t1,t2} se migra solo (migrarCadena)
 app_mrc              lista mercado [{id,name,icon,cat,on}] · gM() hace merge no-destructivo con DM
 app_tc               {saldo, cuota, tasa}  ← tasa = % MENSUAL (no E.A.) para amortización (deudaInfo/tasaMensualDe)
-app_metas            metas de ahorro v2: [{id,nombre,icono,total,meta}] (migra de app_meta {total,metaCasa})
+app_metas            metas de ahorro v2: [{id,nombre,icono,total,meta,plazoMeses?}] (migra de app_meta {total,metaCasa}). Se configuran en modal (ov-metas); el total sube SOLO desde gastos tipo ahorro
 app_sav_{Y}_{M}      ahorro registrado por mes (racha de ahorro y ritmo)
-app_prima_{Y}_{M}    distribución de prima {real, tc, fna, libre, fecha}
+app_prima_{Y}_{M}    (LEGACY) ya no se escribe — el planificador de prima se eliminó; la prima se registra como Ingreso extra cat 'Prima'
 app_pin              hash del PIN (sha256:… ó plain:…). EXCLUIDO del backup (getAllData lo omite)
 app_drive_cid        Client ID OAuth
 app_drive_fid        file ID del respaldo en Drive
