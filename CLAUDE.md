@@ -28,8 +28,9 @@ app_ccfg             cadenas (v2): {v:2, cadenas:[{id,nombre,valorCuota,frecuenc
                      posiciones:[{id,tipo:'propio'|'compartido',miSplit,conQuien,turnoMes,montoPozo}]}]}
                      · formato viejo {puestos,valor,d1,d2,dPago,t1,t2} se migra solo (migrarCadena)
 app_mrc              lista mercado [{id,name,icon,cat,on}] · gM() hace merge no-destructivo con DM
-app_tc               {saldo, cuota, tasa}  ← tasa = % E.A. para amortización real (deudaInfo)
-app_meta             {total, metaCasa}
+app_tc               {saldo, cuota, tasa}  ← tasa = % MENSUAL (no E.A.) para amortización (deudaInfo/tasaMensualDe)
+app_metas            metas de ahorro v2: [{id,nombre,icono,total,meta}] (migra de app_meta {total,metaCasa})
+app_sav_{Y}_{M}      ahorro registrado por mes (racha de ahorro y ritmo)
 app_prima_{Y}_{M}    distribución de prima {real, tc, fna, libre, fecha}
 app_pin              hash del PIN (sha256:… ó plain:…). EXCLUIDO del backup (getAllData lo omite)
 app_drive_cid        Client ID OAuth
@@ -53,7 +54,7 @@ cartera_prerestore   (sin prefijo app_) snapshot de seguridad antes de un restor
 ## Convenciones del código
 - Funciones de render por pantalla: `rInicio()`, `rGastos()`, `rCadena()`, `rMercado()`, `rMas()` (análisis), `rAjustes()`
 - `renderAll()` redibuja la pantalla activa y los badges; llamarla tras cualquier mutación de estado
-- Getters/setters de storage: `gD()/sD()` (mes actual), `gM()/sM()` (mercado), `gTc()/sTc()`, `gMeta()/sMeta()`, `getCadenas()/setCadenas()` (cadenas v2), `gInc()/sInc()` (ingresos extra), `gCfgApp()/sCfgApp()` (config usuario). Helpers cadena: `getCPagos()` (filas derivadas del mes), `cobrosMes()` (pozos del mes), `cadDuracion/cadIdxMes/cadPozo`. Salario por mes: `NETOm(y,m)`. Deuda: `deudaInfo()/tasaMensualDe()`.
+- Getters/setters de storage: `gD()/sD()` (mes actual), `gM()/sM()` (mercado), `gTc()/sTc()`, `gMeta()/sMeta()`, `getCadenas()/setCadenas()` (cadenas v2), `gInc()/sInc()` (ingresos extra), `gCfgApp()/sCfgApp()` (config usuario). Helpers cadena: `getCPagos()` (filas derivadas del mes), `cobrosMes()` (pozos del mes), `cadDuracion/cadIdxMes/cadPozo`. Salario por mes: `NETOm(y,m)`. Deuda: `deudaInfo()/tasaMensualDe()` (tasa MENSUAL). Metas: `gMetas()/sMetas()/totalAhorrado()/ensureMeta()`. Ahorro por mes: `addAhorroMes()/savMes()/rachaAhorro()`. La edición de tarjeta y metas vive en **Ajustes** (rAjustes); `rMas` (Análisis) es solo lectura.
 - Modales: overlays con ids `ov-*`, abrir/cerrar con `openOv(id)/closeOv(id)`
 - Botones flotantes (FAB): se crean dinámicamente en cada render y se destruyen en `renderAll()` — son circulares minimalistas (54px, solo icono)
 - Navegación de meses: limitada entre el mes más antiguo con datos (`earliestDataMonth()`) y mes actual+1; `goToday()` vuelve al actual

@@ -39,8 +39,10 @@ Aplicación web progresiva (PWA) de **cartera mensual personal**, pensada para u
 - **Cadenas de ahorro (san) rediseñadas**: **una o varias** cadenas, **varios puestos**, split configurable (no solo 50/50), pago **mensual o quincenal**, y el **cobro del pozo** de tu turno visible
 - **Lista de mercado** por categorías colapsables, con **selector de categoría** al agregar y registro del gasto total al terminar
 - **Prima semestral** (junio/diciembre, norma laboral colombiana) con asistente de distribución y **monto real editable**
-- **Tracker de deuda** (tarjeta) con **interés real (% E.A.)** y meses para liquidar por amortización (avisa si la cuota no cubre ni los intereses)
-- **Meta de ahorro** con barra de progreso, abonos extra y **racha de meses ahorrando**
+- **Tracker de deuda** (tarjeta) con **interés mensual (%)** y meses para liquidar por amortización (avisa si la cuota no cubre ni los intereses); registra **compras y abonos** que suben/bajan el saldo
+- **Metas de ahorro múltiples** con nombre e icono (ej. FNA, Casa, Emergencia), barra de progreso, abonos y **racha de meses ahorrando**
+- **Configuración separada del análisis**: tarjeta y metas se editan en Ajustes; Análisis queda solo de lectura
+- La **prima** se puede registrar con su monto real: la parte libre **entra como ingreso del mes**, y deuda/ahorro se aplican aparte
 - **Historial mensual** con gráfico comparativo y **desglose por categorías**; el histórico **no se distorsiona** si te suben el salario (se congela el sueldo de cada mes)
 - **Bloqueo con PIN** (hash local, nunca viaja al respaldo) y **modo oscuro** (tema iOS)
 - **Exportar**: respaldo JSON completo + histórico CSV para Excel
@@ -88,8 +90,8 @@ index.html  ← TODO: HTML + CSS + JS vanilla en un solo archivo
 │   ├── app_cd_{YYYY}_{M}  → estado de pagos de cadena del mes (v2)
 │   ├── app_ccfg           → cadenas (v2: array con posiciones, splits, frecuencia)
 │   ├── app_mrc            → lista de mercado
-│   ├── app_tc             → tarjeta de crédito (saldo, cuota, tasa % E.A.)
-│   ├── app_meta           → ahorro total y meta
+│   ├── app_tc             → tarjeta de crédito (saldo, cuota, tasa % mensual)
+│   ├── app_metas          → metas de ahorro [{id,nombre,icono,total,meta}]
 │   ├── app_sav_{Y}_{M}    → ahorro registrado por mes (racha y ritmo)
 │   ├── app_prima_{Y}_{M}  → distribución de la prima del semestre
 │   ├── app_pin            → hash del PIN (excluido del respaldo)
