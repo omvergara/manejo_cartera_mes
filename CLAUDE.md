@@ -32,7 +32,9 @@ app_ccfg             cadenas (v2): {v:2, cadenas:[{id,nombre,valorCuota,frecuenc
                      posiciones:[{id,tipo:'propio'|'compartido',miSplit,conQuien,turnoMes,montoPozo}]}]}
                      · formato viejo {puestos,valor,d1,d2,dPago,t1,t2} se migra solo (migrarCadena)
 app_mrc              lista mercado [{id,name,icon,cat,on}] · gM() hace merge no-destructivo con DM
-app_tc               {saldo, cuota, tasa}  ← tasa = % MENSUAL (no E.A.) para amortización (deudaInfo/tasaMensualDe)
+app_tcs              tarjetas MÚLTIPLES: [{id,nombre,saldo,cuota,tasa}] (migra de app_tc). tasa = % MENSUAL.
+                     · deudaInfo() = amortización real mes a mes (último pago parcial); interés correcto. gasto.tcId elige tarjeta
+app_tc               (LEGACY) tarjeta única antigua — se migra a app_tcs
 app_metas            metas de ahorro v2: [{id,nombre,icono,total,meta,plazoMeses?}] (migra de app_meta {total,metaCasa}). Se configuran en modal (ov-metas); el total sube SOLO desde gastos tipo ahorro
 app_sav_{Y}_{M}      ahorro registrado por mes (racha de ahorro y ritmo)
 app_prima_{Y}_{M}    (LEGACY) ya no se escribe — el planificador de prima se eliminó; la prima se registra como Ingreso extra cat 'Prima'

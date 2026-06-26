@@ -369,23 +369,24 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
     <div class="mttl" id="ogt"></div>
     <label>Nombre</label><input type="text" id="og-nom" placeholder="Ej: Arriendo">
     <label>Monto ($)</label><input type="number" id="og-mnt" placeholder="700000" inputmode="numeric">
-    <label>Categoría</label>
-    <select id="og-cat">
-      <option value="Vivienda">🏠 Vivienda</option><option value="Servicios">💡 Servicios</option>
-      <option value="Hogar">🏡 Hogar</option><option value="Familia">👨‍👩‍👧 Familia</option><option value="Transporte">🚗 Transporte</option>
-      <option value="Alimentación">🍽️ Alimentación</option><option value="Salud">💊 Salud</option>
-      <option value="Educación">🎓 Educación</option><option value="Entretenimiento">🎬 Entretenimiento</option>
-      <option value="Tecnología">📱 Tecnología</option><option value="Deuda">💳 Deuda</option>
-      <option value="Ahorro">💰 Ahorro</option><option value="Otros">📦 Otros</option>
-    </select>
     <label style="margin-bottom:8px">Tipo</label>
     <div class="toggle-row">
       <button type="button" class="tgl-opt on" id="ogt-ef" onclick="ogSetTipo('efectivo')">💵 Efectivo</button>
       <button type="button" class="tgl-opt" id="ogt-ah" onclick="ogSetTipo('ahorro')">🏦 Ahorro</button>
       <button type="button" class="tgl-opt" id="ogt-tc" onclick="ogSetTipo('tarjeta')">💳 Tarjeta</button>
     </div>
+    <div id="og-cat-wrap"><label>Categoría</label>
+    <select id="og-cat">
+      <option value="Vivienda">🏠 Vivienda</option><option value="Servicios">💡 Servicios</option>
+      <option value="Hogar">🏡 Hogar</option><option value="Familia">👨‍👩‍👧 Familia</option><option value="Transporte">🚗 Transporte</option>
+      <option value="Alimentación">🍽️ Alimentación</option><option value="Salud">💊 Salud</option>
+      <option value="Educación">🎓 Educación</option><option value="Entretenimiento">🎬 Entretenimiento</option>
+      <option value="Tecnología">📱 Tecnología</option><option value="Deuda">💳 Deuda</option>
+      <option value="Otros">📦 Otros</option>
+    </select></div>
     <div id="og-meta-wrap" style="display:none"><label>↳ Súmalo a la meta (al pagarlo):</label><select id="og-meta"></select></div>
-    <div id="og-tc-hint" style="display:none;font-size:12px;color:var(--t2);margin-top:8px;line-height:1.5">💳 Al pagarlo suma a tu deuda de tarjeta y no descuenta tu efectivo del mes.</div>
+    <div id="og-tcid-wrap" style="display:none"><label>↳ ¿Cuál tarjeta?</label><select id="og-tcid"></select></div>
+    <div id="og-tc-hint" style="display:none;font-size:12px;color:var(--t2);margin-top:8px;line-height:1.5">💳 Al pagarlo suma a esa tarjeta y no descuenta tu efectivo del mes.</div>
     <label style="display:flex;align-items:center;gap:8px;margin-top:12px;cursor:pointer"><input type="checkbox" id="og-rec" style="width:auto"> 🔁 Gasto recurrente mensual</label>
     <div class="mbtns"><button class="bcancel" onclick="closeOv('ov-gasto')">Cancelar</button><button class="bsave" onclick="saveGasto()">Guardar</button></div>
   </div>
@@ -555,15 +556,18 @@ function seedGastos(y,m){
   for(let i=1;i<=12;i++){
     let py=y,pm=m-i;while(pm<0){pm+=12;py--;}
     const r=localStorage.getItem(key(py,pm));
-    if(r){try{return (JSON.parse(r).gastos||[]).filter(g=>g.recurrente).map(g=>({...g,paid:false,anticipado:false,_tcAmt:undefined,_metaApplied:undefined}));}catch(e){return [];}}
+    if(r){try{return (JSON.parse(r).gastos||[]).filter(g=>g.recurrente).map(g=>({...g,paid:false,_tcAmt:undefined,_tcApplied:undefined,_metaApplied:undefined}));}catch(e){return [];}}
   }
   return DG.map(g=>({...g}));
 }
 function sD(d){safeSet(key(curY,curM),d);autoSync();}
 function gM(){const r=localStorage.getItem(PFX+'mrc');return r?mergeMercado(JSON.parse(r)):DM.map(x=>({...x}))}
 function sM(d){safeSet(PFX+'mrc',d);autoSync();}
-function gTc(){const r=localStorage.getItem(PFX+'tc');return r?JSON.parse(r):{saldo:0,cuota:0,tasa:0}}
-function sTc(d){safeSet(PFX+'tc',d);autoSync();}
+// Tarjetas MÚLTIPLES. app_tcs=[{id,nombre,saldo,cuota,tasa}]. Migra de app_tc {saldo,cuota,tasa}.
+function gTcs(){const r=localStorage.getItem(PFX+'tcs');if(r){try{return JSON.parse(r);}catch(e){}}const old=localStorage.getItem(PFX+'tc');if(old){try{const o=JSON.parse(old);const a=[{id:'tc1',nombre:'Tarjeta',saldo:+o.saldo||0,cuota:+o.cuota||0,tasa:+o.tasa||0}];safeSet(PFX+'tcs',a);return a;}catch(e){}}return [];}
+function sTcs(a){safeSet(PFX+'tcs',a);autoSync();}
+function ensureTc(){let a=gTcs();if(!a.length){a=[{id:'tc'+Date.now(),nombre:'Tarjeta',saldo:0,cuota:0,tasa:0}];sTcs(a);}return a;}
+function deudaTotal(){return gTcs().reduce((s,t)=>s+(+t.saldo||0),0);}
 // Metas de ahorro MÚLTIPLES (v2). app_metas=[{id,nombre,icono,total,meta}].
 // Migra del formato viejo app_meta {total, metaCasa} a una meta 'Casa'.
 function gMetas(){const r=localStorage.getItem(PFX+'metas');if(r){try{return JSON.parse(r);}catch(e){}}const old=localStorage.getItem(PFX+'meta');if(old){try{const o=JSON.parse(old);const m=[{id:'casa',nombre:'Casa',icono:'🏡',total:+o.total||0,meta:+o.metaCasa||0}];safeSet(PFX+'metas',m);return m;}catch(e){}}return [];}
@@ -693,10 +697,11 @@ function tasaMensualDe(t){return (+t||0)/100;}
 function deudaInfo(saldo,cuota,i){
   saldo=+saldo||0;cuota=+cuota||0;i=+i||0;
   if(saldo<=0||cuota<=0)return{meses:0,interesTotal:0,nuncaBaja:false};
-  if(i<=0){return{meses:Math.ceil(saldo/cuota),interesTotal:0,nuncaBaja:false};}
-  if(cuota<=saldo*i)return{meses:0,interesTotal:0,nuncaBaja:true};// la cuota no cubre ni el interés
-  const n=Math.ceil(-Math.log(1-saldo*i/cuota)/Math.log(1+i));
-  return{meses:n,interesTotal:Math.max(0,n*cuota-saldo),nuncaBaja:false};
+  if(i>0&&cuota<=saldo*i)return{meses:0,interesTotal:0,nuncaBaja:true};// la cuota no cubre ni el interés
+  // Amortización real mes a mes: el último pago es parcial, así el interés no se sobreestima.
+  let bal=saldo,interes=0,n=0;
+  while(bal>0.5&&n<1200){const it=bal*i;const pay=Math.min(cuota,bal+it);interes+=it;bal=bal+it-pay;n++;}
+  return{meses:n,interesTotal:Math.round(interes),nuncaBaja:false};
 }
 function calcT(){
   const d=gD();let tot=0,paid=0,ah=0;
@@ -725,7 +730,7 @@ function rHdr(title,nav=true){
 // ── INICIO ────────────────────────────────────────────────
 function rInicio(){
   const {tot,paid,pending,libre,tc,extInc,neto}=calcT();
-  const tc2=gTc();
+  const deudaTot=deudaTotal();
   const tAh=totalAhorrado();const mC=totalMeta();
   const pctC=mC?Math.min(100,Math.round(tAh/mC*100)):0;
   const pctP=tc?Math.round(paid/tc*100):0;
@@ -757,7 +762,7 @@ function rInicio(){
   if(libre<0)tips+=`<div class="tip danger"><span class="ti">🚨</span><div class="tb">Compromisos superan ingresos en <b>${fmt(Math.abs(libre))}</b>.</div></div>`;
   else if(libre<neto*0.1)tips+=`<div class="tip warn"><span class="ti">⚠️</span><div class="tb">Solo quedan <b>${fmt(libre)}</b> libres.</div></div>`;
   else tips+=`<div class="tip good"><span class="ti">💚</span><div class="tb">Te quedan <b>${fmt(libre)}</b> libres. ¡Bien!</div></div>`;
-  if(tc2.saldo>0&&tc2.cuota>0){const _di=deudaInfo(tc2.saldo,tc2.cuota,tasaMensualDe(tc2.tasa));tips+=`<div class="tip info"><span class="ti">💳</span><div class="tb">Tarjeta: <b>${fmt(tc2.saldo)}</b>. ${_di.nuncaBaja?`Con ${fmt(tc2.cuota)}/mes <b>la deuda no baja</b> (solo cubre intereses).`:`Con ${fmt(tc2.cuota)}/mes: <b>~${_di.meses} meses</b> para quedar a paz${_di.interesTotal>0?` (${fmt(_di.interesTotal)} en intereses)`:''}.`}</div></div>`;}
+  if(deudaTot>0){const nT=gTcs().length;tips+=`<div class="tip info"><span class="ti">💳</span><div class="tb">Deuda en tarjeta${nT>1?'s':''}: <b>${fmt(deudaTot)}</b>.${nT>1?` (${nT} tarjetas)`:''} Ve a Análisis para el detalle de pago.</div></div>`;}
   if(mC>0)tips+=`<div class="tip teal"><span class="ti">🏡</span><div class="tb">Meta ahorro: <b>${fmt(tAh)}</b> de ${fmt(mC)} (${pctC}%).</div></div>`;
   if(extInc>0)tips+=`<div class="tip pur"><span class="ti">💜</span><div class="tb">Ingresos extra este mes: <b>${fmt(extInc)}</b>. Total disponible: <b>${fmt(neto+extInc)}</b>.</div></div>`;
   const _cob=cobrosMes(curY,curM);if(_cob.length){const _ct=_cob.reduce((a,x)=>a+x.monto,0);tips+=`<div class="tip gold"><span class="ti">🏆</span><div class="tb">Este mes <b>cobras el pozo</b> de tu cadena: <b>${fmt(_ct)}</b>.</div></div>`;}
@@ -979,8 +984,8 @@ function saveMrcGasto(){const monto=parseInt(document.getElementById('om-mnt').v
 
 // ── ANÁLISIS ──────────────────────────────────────────────
 function rMas(){
-  const tc=gTc();const tAh=totalAhorrado();const mC=totalMeta();
-  const pctC=mC?Math.min(100,Math.round(tAh/mC*100)):0;const dInfo=deudaInfo(tc.saldo,tc.cuota,tasaMensualDe(tc.tasa));const mTC=dInfo.meses;
+  const tAh=totalAhorrado();const mC=totalMeta();
+  const pctC=mC?Math.min(100,Math.round(tAh/mC*100)):0;
   const allMonths=[];for(let y=2025;y<=curY+1;y++){for(let m=0;m<12;m++){const r=localStorage.getItem(key(y,m));if(r){const p=JSON.parse(r);let t=0,pg=0;p.gastos.forEach(g=>{t+=g.amount;if(g.paid)pg+=g.amount;});const inc=localStorage.getItem(keyInc(y,m));const extI=inc?JSON.parse(inc).reduce((s,i)=>s+i.monto,0):0;allMonths.push({lbl:MNS[m].slice(0,3),total:t,paid:pg,extras:extI});}}}
   const totalPages=Math.max(1,Math.ceil(allMonths.length/6));if(histOffset>=totalPages)histOffset=totalPages-1;
   const pageStart=Math.max(0,allMonths.length-6*(histOffset+1));const meses=allMonths.slice(pageStart,allMonths.length-6*histOffset);
@@ -995,7 +1000,7 @@ function rMas(){
   const catRows=catArr.map((c,idx)=>{const w=Math.round(c.total/catMax*100);const pct=catSum?Math.round(c.total/catSum*100):0;const col=CATCOLS[idx%CATCOLS.length];return `<div class="catbar"><div class="catbar-top"><span class="catbar-ico">${catIco(c.cat)}</span><span class="catbar-nm">${esc(c.cat)}</span><span class="catbar-val">${fmtM(c.total)} · ${pct}%</span></div><div class="catbar-track"><div class="catbar-fill" style="width:${w}%;background:${col}"></div></div></div>`;}).join('');
   const catChart=catArr.length?`<div class="chart-card"><div class="chart-ttl">📊 Gastos por categoría — ${MNS[curM]}</div>${catRows}<div style="margin-top:10px;padding-top:10px;border-top:0.5px solid var(--bdr);display:flex;justify-content:space-between;font-size:13px"><span style="color:var(--t2)">Total del mes</span><span style="font-weight:700;color:var(--ind)">${fmt(catSum)}</span></div></div>`:'';
   const metaSummary=`<div class="list" style="margin-bottom:12px"><div class="tchead" style="background:var(--teal)"><div class="tchlbl">&#127968; Ahorro</div><div class="tchval">${fmt(tAh)}</div></div><div style="padding:14px">${gMetas().map(m=>{const p=m.meta?Math.min(100,Math.round((m.total/m.meta)*100)):0;return `<div style="margin-bottom:10px"><div style="display:flex;justify-content:space-between;font-size:13px"><span>${m.icono||'🐷'} ${esc(m.nombre)}</span><span style="color:var(--t2)">${fmt(m.total)}${m.meta?` / ${fmt(m.meta)} · ${p}%`:''}</span></div>${m.meta?`<div class="pbg" style="height:8px;margin-top:4px"><div class="pfill" style="width:${p}%;background:var(--teal);height:8px"></div></div>`:''}</div>`;}).join('')||'<div style="font-size:13px;color:var(--t3)">Aún no tienes metas. Créalas en Configurar.</div>'}<div class="trw"><span class="tlbl2">Ahorrado en ${MNS[curM]}</span><span class="tval grn">${fmt(savMes(curY,curM))}</span></div><button class="bcancel" style="width:100%;margin-top:10px" onclick="goTo('ajustes')">⚙️ Configurar metas</button></div></div>`;
-  const tarjetaSummary=`<div class="list" style="margin-bottom:12px"><div class="tchead"><div class="tchlbl">&#128179; Tarjeta / deuda</div><div class="tchval">${fmt(tc.saldo)}</div></div><div style="padding:14px"><div class="trw"><span class="tlbl2">Cuota mensual</span><span class="tval">${fmt(tc.cuota)}</span></div><div class="trw"><span class="tlbl2">Interés mensual</span><span class="tval">${tc.tasa||0}%</span></div>${dInfo.nuncaBaja?`<div class="trw"><span class="tlbl2">Para quedar a paz</span><span class="tval amb">⚠️ nunca baja</span></div>`:mTC?`<div class="trw"><span class="tlbl2">Para quedar a paz</span><span class="tval ${mTC<=6?'grn':'amb'}">${mTC} meses${dInfo.interesTotal>0?` · ${fmt(dInfo.interesTotal)} int.`:''}</span></div>`:''}<button class="bcancel" style="width:100%;margin-top:10px" onclick="goTo('ajustes')">⚙️ Configurar tarjeta</button></div></div>`;
+  const tarjetaSummary=`<div class="list" style="margin-bottom:12px"><div class="tchead"><div class="tchlbl">&#128179; Tarjetas</div><div class="tchval">${fmt(deudaTotal())}</div></div><div style="padding:14px">${gTcs().map(tc=>{const di=deudaInfo(tc.saldo,tc.cuota,tasaMensualDe(tc.tasa));return `<div style="margin-bottom:10px"><div style="display:flex;justify-content:space-between;font-size:13px"><span>${esc(tc.nombre)}</span><span style="color:var(--t2)">${fmt(tc.saldo)}</span></div><div style="font-size:11px;color:var(--t3)">${di.nuncaBaja?'⚠️ no baja con la cuota actual':(di.meses?di.meses+' meses · '+fmt(di.interesTotal)+' int.':'sin cuota')}</div></div>`;}).join('')||'<div style="font-size:13px;color:var(--t3)">Sin tarjetas.</div>'}<button class="bcancel" style="width:100%;margin-top:6px" onclick="goTo('ajustes')">⚙️ Configurar tarjetas</button></div></div>`;
   document.getElementById('s-mas').innerHTML=rHdr('Análisis',false)+`<div class="content">${primaInfo}<div class="chart-card"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px"><div class="chart-ttl" style="margin-bottom:0">Historial gastos</div><div style="display:flex;gap:6px"><button onclick="histOffset++;rMas()" style="background:var(--gray);border:none;border-radius:7px;padding:4px 10px;font-size:14px;cursor:pointer" ${histOffset>=totalPages-1?'disabled style="opacity:.35"':''}>&#8249;</button><button onclick="histOffset=Math.max(0,histOffset-1);rMas()" style="background:var(--gray);border:none;border-radius:7px;padding:4px 10px;font-size:14px;cursor:pointer" ${histOffset===0?'disabled style="opacity:.35"':''}>&#8250;</button></div></div><div style="display:flex;gap:12px;margin-bottom:10px"><span style="display:flex;align-items:center;gap:4px;font-size:11px;color:var(--t2)"><span style="width:10px;height:10px;border-radius:2px;background:var(--ind);display:inline-block"></span>Pagado</span><span style="display:flex;align-items:center;gap:4px;font-size:11px;color:var(--t2)"><span style="width:10px;height:10px;border-radius:2px;background:#e8eaf6;display:inline-block"></span>Total</span></div>${bars||'<div style="color:var(--t2);font-size:13px;padding:8px 0">Sin historial aún.</div>'}</div>${catChart}${metaSummary}${tarjetaSummary}<div style="text-align:center;margin-top:4px"><button onclick="goTo('inicio')" style="background:none;border:0.5px solid var(--bdr);border-radius:10px;padding:10px 20px;font-size:14px;cursor:pointer;color:var(--blue)">&#8249; Volver a Inicio</button></div></div>`;
 }
 
@@ -1003,12 +1008,12 @@ function rMas(){
 function rAjustes(){
   const driveOk=isDriveConnected();const driveId=getDriveClientId();
   const nomSub=ES_QUINCENAL()?`Quincenal dias ${NDAY1()} y ${NDAY2()}`:`Mensual dia ${NDAY()}`;
-  const tc=gTc();const dInfo=deudaInfo(tc.saldo,tc.cuota,tasaMensualDe(tc.tasa));const mTC=dInfo.meses;
+  const nTc=gTcs().length;
   document.getElementById('s-ajustes').innerHTML=rHdr('Ajustes',false)+`<div class="content">
     <div class="shdr"><span class="sttl">Mi perfil</span></div>
     <div class="set-section"><div class="set-row" onclick="openCfgModal()"><div class="set-ico" style="background:#e8f5e9">&#128176;</div><div class="set-inf"><div class="set-ttl">${esc(NOMBRE())||'Configurar perfil'}</div><div class="set-sub">Neto: ${fmt(NETO())} - ${nomSub}</div></div><span class="set-arr">&#8250;</span></div></div>
     <div class="shdr"><span class="sttl">Dinero</span></div>
-    <div class="set-section"><div class="set-row" onclick="openTcCfg()"><div class="set-ico" style="background:#fce4ec">&#128179;</div><div class="set-inf"><div class="set-ttl">Tarjeta / deuda</div><div class="set-sub">${tc.saldo>0?fmt(tc.saldo)+(dInfo.nuncaBaja?' · ⚠️ no baja':(mTC?' · '+mTC+' meses':'')):'Configúrala (los gastos con tarjeta la suman)'}</div></div><span class="set-arr">&#8250;</span></div><div class="set-row" onclick="openMetasCfg()"><div class="set-ico" style="background:#e0f2f1">&#127974;</div><div class="set-inf"><div class="set-ttl">Metas de ahorro</div><div class="set-sub">${gMetas().length?gMetas().length+' meta(s) · '+fmt(totalAhorrado())+' ahorrado':'Crea tus metas (FNA, Casa, Emergencia)'}</div></div><span class="set-arr">&#8250;</span></div></div>
+    <div class="set-section"><div class="set-row" onclick="openTcCfg()"><div class="set-ico" style="background:#fce4ec">&#128179;</div><div class="set-inf"><div class="set-ttl">Tarjetas</div><div class="set-sub">${nTc?nTc+' tarjeta(s) · '+fmt(deudaTotal())+' de deuda':'Agrega tus tarjetas (los gastos 💳 las suman)'}</div></div><span class="set-arr">&#8250;</span></div><div class="set-row" onclick="openMetasCfg()"><div class="set-ico" style="background:#e0f2f1">&#127974;</div><div class="set-inf"><div class="set-ttl">Metas de ahorro</div><div class="set-sub">${gMetas().length?gMetas().length+' meta(s) · '+fmt(totalAhorrado())+' ahorrado':'Crea tus metas (FNA, Casa, Emergencia)'}</div></div><span class="set-arr">&#8250;</span></div></div>
     <div class="set-section"><div class="set-row" onclick="exportJSON()"><div class="set-ico" style="background:#e3f2fd">&#128230;</div><div class="set-inf"><div class="set-ttl">Respaldo JSON</div><div class="set-sub">Archivo completo restaurable.</div></div><span class="set-arr">&#8595;</span></div><div class="set-row" onclick="exportExcel()"><div class="set-ico" style="background:#e8f5e9">&#128202;</div><div class="set-inf"><div class="set-ttl">Historico CSV</div><div class="set-sub">Gastos e ingresos en tabla.</div></div><span class="set-arr">&#8595;</span></div></div>
     <div class="shdr"><span class="sttl">Restaurar</span></div>
     <div class="set-section"><div class="set-row" onclick="openOv('ov-import')"><div class="set-ico" style="background:#fff8e1">&#128229;</div><div class="set-inf"><div class="set-ttl">Importar respaldo</div><div class="set-sub">Desde archivo JSON.</div></div><span class="set-arr">&#8250;</span></div></div>
@@ -1046,34 +1051,38 @@ function addAhorroMes(monto){if(!monto)return;const k=`${PFX}sav_${curY}_${curM}
 function savMes(y,m){return parseInt(localStorage.getItem(`${PFX}sav_${y}_${m}`))||0;}
 // Meses consecutivos con ahorro > 0 contando hacia atrás desde el mes actual real.
 function rachaAhorro(){const h=new Date();let y=h.getFullYear(),m=h.getMonth();let s=0;for(let i=0;i<24;i++){if(savMes(y,m)>0){s++;m--;if(m<0){m=11;y--;}}else break;}return s;}
-// ── TARJETA (config en modal) ─────────────────────────────
-function updTc(f,v){const t=gTc();t[f]=(f==='tasa')?(parseFloat(v)||0):(parseInt(v)||0);sTc(t);tcCfgRender();renderAll();}
-function setMeses(n){const t=gTc();t.cuota=Math.ceil((+t.saldo||0)/n);sTc(t);tcCfgRender();renderAll();}
+// ── TARJETAS (config en modal, múltiples) ─────────────────
+function updTc(id,f,v){const a=gTcs();const t=a.find(x=>x.id===id);if(!t)return;t[f]=(f==='nombre')?v:((f==='tasa')?(parseFloat(v)||0):(parseInt(v)||0));sTcs(a);if(f!=='nombre')tcCfgRender();renderAll();}
+function setMeses(id,n){const a=gTcs();const t=a.find(x=>x.id===id);if(!t)return;t.cuota=Math.ceil((+t.saldo||0)/n);sTcs(a);tcCfgRender();renderAll();}
+function tcAdd(){const a=gTcs();a.push({id:'tc'+Date.now(),nombre:'Tarjeta '+(a.length+1),saldo:0,cuota:0,tasa:0});sTcs(a);tcCfgRender();renderAll();}
+function tcDel(id){const t=gTcs().find(x=>x.id===id);showConfirm('¿Eliminar la tarjeta?',(t?'"'+t.nombre+'" ':'')+'Se borra su saldo.',()=>{sTcs(gTcs().filter(x=>x.id!==id));tcCfgRender();renderAll();});}
 function openTcCfg(){tcCfgRender();openOv('ov-tccfg');}
-function tcCfgRender(){const body=document.getElementById('tccfg-body');if(!body)return;const tc=gTc();const dInfo=deudaInfo(tc.saldo,tc.cuota,tasaMensualDe(tc.tasa));const mTC=dInfo.meses;body.innerHTML=`<div class="trw"><span class="tlbl2">Saldo hoy</span><input class="tinp" type="number" inputmode="numeric" value="${tc.saldo}" onchange="updTc('saldo',this.value)"></div><div class="trw"><span class="tlbl2">Cuota mensual</span><input class="tinp" type="number" inputmode="numeric" value="${tc.cuota}" onchange="updTc('cuota',this.value)"></div><div class="trw"><span class="tlbl2">Interés mensual (%)</span><input class="tinp" type="number" inputmode="decimal" step="0.1" placeholder="ej 2.3" value="${tc.tasa||0}" onchange="updTc('tasa',this.value)"></div>${dInfo.nuncaBaja?`<div class="trw"><span class="tlbl2">Para quedar a paz</span><span class="tval amb">⚠️ nunca baja</span></div>`:mTC?`<div class="trw"><span class="tlbl2">Para quedar a paz</span><span class="tval ${mTC<=6?'grn':'amb'}">${mTC} meses${dInfo.interesTotal>0?` · ${fmt(dInfo.interesTotal)} int.`:''}</span></div>`:''}${tc.saldo>0?`<div style="display:flex;gap:6px;margin-top:10px;flex-wrap:wrap">${[3,6,9,12].map(n=>`<div class="mchip" onclick="setMeses(${n})">cuota ${n}m</div>`).join('')}</div>`:''}<div style="font-size:12px;color:var(--t2);margin-top:12px;line-height:1.5">💡 Configúrala una vez. Cada gasto que marques <b>💳 con tarjeta</b> sube este saldo solo.</div>`;}
+function tcCfgRender(){const body=document.getElementById('tccfg-body');if(!body)return;let h=gTcs().map(tc=>{const dInfo=deudaInfo(tc.saldo,tc.cuota,tasaMensualDe(tc.tasa));const mTC=dInfo.meses;return `<div style="border:0.5px solid var(--bdr);border-radius:12px;padding:12px;margin-bottom:10px"><div style="display:flex;gap:8px;align-items:center;margin-bottom:4px"><input class="tinp" style="flex:1;width:auto;text-align:left;font-weight:600" value="${esc(tc.nombre)}" onchange="updTc('${tc.id}','nombre',this.value)"><button class="del" onclick="tcDel('${tc.id}')">×</button></div><div class="trw"><span class="tlbl2">Saldo hoy</span><input class="tinp" type="number" inputmode="numeric" value="${tc.saldo}" onchange="updTc('${tc.id}','saldo',this.value)"></div><div class="trw"><span class="tlbl2">Cuota mensual</span><input class="tinp" type="number" inputmode="numeric" value="${tc.cuota}" onchange="updTc('${tc.id}','cuota',this.value)"></div><div class="trw"><span class="tlbl2">Interés mensual (%)</span><input class="tinp" type="number" inputmode="decimal" step="0.1" placeholder="ej 2.3" value="${tc.tasa||0}" onchange="updTc('${tc.id}','tasa',this.value)"></div>${dInfo.nuncaBaja?`<div class="trw"><span class="tlbl2">Para quedar a paz</span><span class="tval amb">⚠️ nunca baja</span></div>`:mTC?`<div class="trw"><span class="tlbl2">Para quedar a paz</span><span class="tval ${mTC<=6?'grn':'amb'}">${mTC} meses${dInfo.interesTotal>0?` · ${fmt(dInfo.interesTotal)} int.`:''}</span></div>`:''}${tc.saldo>0?`<div style="display:flex;gap:6px;margin-top:10px;flex-wrap:wrap">${[3,6,9,12].map(n=>`<div class="mchip" onclick="setMeses('${tc.id}',${n})">cuota ${n}m</div>`).join('')}</div>`:''}</div>`;}).join('')||'<div style="font-size:13px;color:var(--t3);margin-bottom:10px">Sin tarjetas. Agrega una.</div>';h+=`<button class="bcancel" style="width:100%" onclick="tcAdd()">＋ Nueva tarjeta</button><div style="font-size:12px;color:var(--t2);margin-top:10px;line-height:1.5">💡 La cuota es lo que planeas abonar; con eso calculo los meses. Cada gasto 💳 con tarjeta sube el saldo solo.</div>`;body.innerHTML=h;}
 // ── METAS DE AHORRO (config en modal) ─────────────────────
 function metaAdd(){const ms=gMetas();ms.push({id:'g'+Date.now(),nombre:'Nueva meta',icono:'🐷',total:0,meta:0,plazoMeses:0});sMetas(ms);metasCfgRender();renderAll();}
 function metaUpd(id,f,v){const ms=gMetas();const m=ms.find(x=>x.id===id);if(!m)return;m[f]=(f==='nombre'||f==='icono')?v:(parseInt(v)||0);sMetas(ms);if(f!=='nombre'&&f!=='icono')metasCfgRender();renderAll();}
 function metaDel(id){const m=gMetas().find(x=>x.id===id);showConfirm('¿Eliminar la meta?',(m?'"'+m.nombre+'" ':'')+'Se borra su progreso.',()=>{sMetas(gMetas().filter(x=>x.id!==id));metasCfgRender();renderAll();});}
 function openMetasCfg(){metasCfgRender();openOv('ov-metas');}
 function metasCfgRender(){const body=document.getElementById('metas-body');if(!body)return;let h=gMetas().map(m=>{const p=m.meta?Math.min(100,Math.round((m.total/m.meta)*100)):0;const falta=Math.max(0,(+m.meta||0)-(+m.total||0));const xmes=(m.plazoMeses>0&&falta>0)?`<div style="font-size:12px;color:var(--teal);margin-top:6px">Ahorra ~${fmt(Math.ceil(falta/m.plazoMeses))}/mes para llegar en ${m.plazoMeses} meses.</div>`:'';return `<div style="border:0.5px solid var(--bdr);border-radius:12px;padding:12px;margin-bottom:10px"><div style="display:flex;gap:8px;align-items:center"><input class="tinp" style="width:46px;text-align:center" value="${esc(m.icono||'🐷')}" onchange="metaUpd('${m.id}','icono',this.value)"><input class="tinp" style="flex:1;width:auto;text-align:left" value="${esc(m.nombre)}" onchange="metaUpd('${m.id}','nombre',this.value)"><button class="del" onclick="metaDel('${m.id}')">×</button></div><div class="trw"><span class="tlbl2">Objetivo</span><input class="tinp" type="number" inputmode="numeric" value="${m.meta||0}" onchange="metaUpd('${m.id}','meta',this.value)"></div><div class="trw"><span class="tlbl2">Plazo (meses, opcional)</span><input class="tinp" type="number" inputmode="numeric" value="${m.plazoMeses||0}" onchange="metaUpd('${m.id}','plazoMeses',this.value)"></div><div class="trw"><span class="tlbl2">Ahorrado</span><span class="tval grn">${fmt(m.total||0)}${m.meta?` · ${p}%`:''}</span></div>${m.meta?`<div class="pbg" style="height:8px;margin:6px 0"><div class="pfill" style="width:${p}%;background:var(--teal);height:8px"></div></div>`:''}${xmes}</div>`;}).join('')||'<div style="font-size:13px;color:var(--t3);margin-bottom:10px">Sin metas. Crea una (ej. FNA, Casa, Emergencia).</div>';h+=`<button class="bcancel" style="width:100%" onclick="metaAdd()">＋ Nueva meta</button><div style="font-size:12px;color:var(--t2);margin-top:10px;line-height:1.5">💡 El "ahorrado" sube solo cuando marcas un gasto tipo 🏦 Ahorro hacia esta meta.</div>`;body.innerHTML=h;}
-// Aplica/revierte el efecto de un gasto en la deuda de tarjeta o en una meta de ahorro.
-// Idempotente: usa _tcAmt y _metaApplied como marca de lo ya aplicado.
+// Aplica/revierte el efecto de un gasto en la deuda de una tarjeta o en una meta de ahorro.
+// Idempotente: _tcApplied={id,amt} y _metaApplied={id,amt} marcan lo ya aplicado.
 function reconcileGasto(g){
-  const tcShould=!!(g.tarjeta&&g.paid);
-  if(tcShould){if(g._tcAmt==null){const t=gTc();t.saldo=(+t.saldo||0)+g.amount;sTc(t);g._tcAmt=g.amount;}else if(g._tcAmt!==g.amount){const t=gTc();t.saldo=Math.max(0,(+t.saldo||0)-g._tcAmt+g.amount);sTc(t);g._tcAmt=g.amount;}}
-  else if(g._tcAmt!=null){const t=gTc();t.saldo=Math.max(0,(+t.saldo||0)-g._tcAmt);sTc(t);delete g._tcAmt;}
+  if(g._tcAmt!=null&&!g._tcApplied){const c=gTcs();g._tcApplied={id:(c[0]?c[0].id:'tc1'),amt:g._tcAmt};}delete g._tcAmt;// migra marca vieja
+  const tcShould=!!(g.tarjeta&&g.paid);const tap=g._tcApplied;
+  if(tcShould){const cards=ensureTc();let card=cards.find(c=>c.id===g.tcId)||cards[0];g.tcId=card.id;if(!tap||tap.id!==card.id||tap.amt!==g.amount){if(tap){const c0=cards.find(c=>c.id===tap.id);if(c0)c0.saldo=Math.max(0,(+c0.saldo||0)-tap.amt);}card.saldo=(+card.saldo||0)+g.amount;sTcs(cards);g._tcApplied={id:card.id,amt:g.amount};}}
+  else if(tap){const cards=gTcs();const c0=cards.find(c=>c.id===tap.id);if(c0){c0.saldo=Math.max(0,(+c0.saldo||0)-tap.amt);sTcs(cards);}delete g._tcApplied;}
   const mShould=!!(g.ahorro&&g.paid&&g.metaId);const ap=g._metaApplied;
   if(mShould){if(!ap||ap.id!==g.metaId||ap.amt!==g.amount){if(ap){const ms=gMetas();const pm=ms.find(x=>x.id===ap.id);if(pm){pm.total=Math.max(0,(+pm.total||0)-ap.amt);sMetas(ms);}}const ms2=gMetas();const m=ms2.find(x=>x.id===g.metaId);if(m){m.total=(+m.total||0)+g.amount;sMetas(ms2);if(!ap)addAhorroMes(g.amount);}g._metaApplied={id:g.metaId,amt:g.amount};}}
   else if(ap){const ms=gMetas();const pm=ms.find(x=>x.id===ap.id);if(pm){pm.total=Math.max(0,(+pm.total||0)-ap.amt);sMetas(ms);}delete g._metaApplied;}
 }
-function fillMetaSelect(elId,sel){const el=document.getElementById(elId);if(!el)return;const ms=gMetas();el.innerHTML=ms.length?ms.map(m=>`<option value="${m.id}">${m.icono||'🐷'} ${esc(m.nombre)}</option>`).join(''):'<option value="">(crea una meta en Ajustes)</option>';if(sel)el.value=sel;}
+function fillMetaSelect(elId,sel){const el=document.getElementById(elId);if(!el)return;const ms=gMetas();el.innerHTML='<option value="">— sin meta específica —</option>'+ms.map(m=>`<option value="${m.id}">${m.icono||'🐷'} ${esc(m.nombre)}</option>`).join('');if(sel)el.value=sel;}
+function fillTcSelect(elId,sel){const el=document.getElementById(elId);if(!el)return;const cs=ensureTc();el.innerHTML=cs.map(c=>`<option value="${c.id}">${esc(c.nombre)}</option>`).join('');if(sel)el.value=sel;}
 function tPaid(id){const d=gD();const g=d.gastos.find(x=>x.id===id);if(g){g.paid=!g.paid;reconcileGasto(g);sD(d);}renderAll();}
 let _ogTipo='efectivo';
-function ogSetTipo(t){_ogTipo=t;[['ef','efectivo'],['ah','ahorro'],['tc','tarjeta']].forEach(p=>document.getElementById('ogt-'+p[0]).classList.toggle('on',t===p[1]));document.getElementById('og-meta-wrap').style.display=(t==='ahorro')?'':'none';document.getElementById('og-tc-hint').style.display=(t==='tarjeta')?'':'none';}
-function openAdd(){editId=null;document.getElementById('ogt').textContent='Agregar gasto';document.getElementById('og-nom').value='';document.getElementById('og-mnt').value='';document.getElementById('og-cat').value='Otros';document.getElementById('og-rec').checked=false;fillMetaSelect('og-meta');ogSetTipo('efectivo');openOv('ov-gasto');setTimeout(()=>document.getElementById('og-nom').focus(),150);}
-function openEdit(id){const d=gD();const g=d.gastos.find(x=>x.id===id);if(!g)return;editId=id;document.getElementById('ogt').textContent='Editar '+g.name;document.getElementById('og-nom').value=g.name;document.getElementById('og-mnt').value=g.amount;document.getElementById('og-cat').value=g.cat||'Otros';document.getElementById('og-rec').checked=!!g.recurrente;fillMetaSelect('og-meta',g.metaId);ogSetTipo(g.tarjeta?'tarjeta':(g.ahorro?'ahorro':'efectivo'));openOv('ov-gasto');}
-function saveGasto(){const name=document.getElementById('og-nom').value.trim();const amount=parseInt(document.getElementById('og-mnt').value)||0;const cat=document.getElementById('og-cat').value;const recurrente=document.getElementById('og-rec').checked;const ah=(_ogTipo==='ahorro');const tarjeta=(_ogTipo==='tarjeta');const metaId=ah?(document.getElementById('og-meta')?document.getElementById('og-meta').value:''):'';if(!name)return;const d=gD();let g;if(editId){g=d.gastos.find(x=>x.id===editId);if(g){g.name=name;g.amount=amount;g.cat=ah?'Ahorro':cat;g.ahorro=ah;g.recurrente=recurrente;g.tarjeta=tarjeta;g.metaId=metaId;g.anticipado=false;}}else{g={id:'g_'+Date.now(),name,amount,cat:ah?'Ahorro':cat,paid:false,ahorro:ah,recurrente,tarjeta,metaId};d.gastos.push(g);}if(g)reconcileGasto(g);sD(d);closeOv('ov-gasto');renderAll();}
+function ogSetTipo(t){_ogTipo=t;[['ef','efectivo'],['ah','ahorro'],['tc','tarjeta']].forEach(p=>document.getElementById('ogt-'+p[0]).classList.toggle('on',t===p[1]));document.getElementById('og-cat-wrap').style.display=(t==='ahorro')?'none':'';document.getElementById('og-meta-wrap').style.display=(t==='ahorro')?'':'none';document.getElementById('og-tcid-wrap').style.display=(t==='tarjeta')?'':'none';document.getElementById('og-tc-hint').style.display=(t==='tarjeta')?'':'none';}
+function openAdd(){editId=null;document.getElementById('ogt').textContent='Agregar gasto';document.getElementById('og-nom').value='';document.getElementById('og-mnt').value='';document.getElementById('og-cat').value='Otros';document.getElementById('og-rec').checked=false;fillMetaSelect('og-meta');fillTcSelect('og-tcid');ogSetTipo('efectivo');openOv('ov-gasto');setTimeout(()=>document.getElementById('og-nom').focus(),150);}
+function openEdit(id){const d=gD();const g=d.gastos.find(x=>x.id===id);if(!g)return;editId=id;document.getElementById('ogt').textContent='Editar '+g.name;document.getElementById('og-nom').value=g.name;document.getElementById('og-mnt').value=g.amount;document.getElementById('og-cat').value=g.cat||'Otros';document.getElementById('og-rec').checked=!!g.recurrente;fillMetaSelect('og-meta',g.metaId);fillTcSelect('og-tcid',g.tcId);ogSetTipo(g.tarjeta?'tarjeta':(g.ahorro?'ahorro':'efectivo'));openOv('ov-gasto');}
+function saveGasto(){const name=document.getElementById('og-nom').value.trim();const amount=parseInt(document.getElementById('og-mnt').value)||0;const cat=document.getElementById('og-cat').value;const recurrente=document.getElementById('og-rec').checked;const ah=(_ogTipo==='ahorro');const tarjeta=(_ogTipo==='tarjeta');const metaId=ah?(document.getElementById('og-meta')?document.getElementById('og-meta').value:''):'';const tcId=tarjeta?(document.getElementById('og-tcid')?document.getElementById('og-tcid').value:''):'';if(!name)return;const d=gD();let g;if(editId){g=d.gastos.find(x=>x.id===editId);if(g){g.name=name;g.amount=amount;g.cat=ah?'Ahorro':cat;g.ahorro=ah;g.recurrente=recurrente;g.tarjeta=tarjeta;g.metaId=metaId;g.tcId=tcId;g.anticipado=false;}}else{g={id:'g_'+Date.now(),name,amount,cat:ah?'Ahorro':cat,paid:false,ahorro:ah,recurrente,tarjeta,metaId,tcId};d.gastos.push(g);}if(g)reconcileGasto(g);sD(d);closeOv('ov-gasto');renderAll();}
 function delGasto(btn){const id=btn.dataset.id;const name=btn.dataset.name;confDel(id,name);}
 function confDel(id,name){showConfirm('¿Eliminar "'+name+'"?','Se quitará de este mes. No se puede deshacer.',()=>{const d=gD();const g=d.gastos.find(x=>x.id===id);if(g){g.tarjeta=false;g.ahorro=false;g.metaId='';reconcileGasto(g);}d.gastos=d.gastos.filter(x=>x.id!==id);sD(d);renderAll();});}
 function openOv(id){document.getElementById(id).classList.add('open');}
