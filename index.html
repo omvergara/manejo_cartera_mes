@@ -370,10 +370,11 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
     <label>Nombre</label><input type="text" id="og-nom" placeholder="Ej: Arriendo">
     <label>Monto ($)</label><input type="number" id="og-mnt" placeholder="700000" inputmode="numeric">
     <label style="margin-bottom:8px">Tipo</label>
-    <div class="toggle-row">
-      <button type="button" class="tgl-opt on" id="ogt-ef" onclick="ogSetTipo('efectivo')">💵 Efectivo</button>
-      <button type="button" class="tgl-opt" id="ogt-ah" onclick="ogSetTipo('ahorro')">🏦 Ahorro</button>
-      <button type="button" class="tgl-opt" id="ogt-tc" onclick="ogSetTipo('tarjeta')">💳 Tarjeta</button>
+    <div class="toggle-row" style="flex-wrap:wrap">
+      <button type="button" class="tgl-opt on" id="ogt-ef" onclick="ogSetTipo('efectivo')" style="font-size:13px">💵 Efectivo</button>
+      <button type="button" class="tgl-opt" id="ogt-ah" onclick="ogSetTipo('ahorro')" style="font-size:13px">🏦 Ahorro</button>
+      <button type="button" class="tgl-opt" id="ogt-tc" onclick="ogSetTipo('tarjeta')" style="font-size:13px">💳 Compra TC</button>
+      <button type="button" class="tgl-opt" id="ogt-ab" onclick="ogSetTipo('abono')" style="font-size:13px">💸 Pago TC</button>
     </div>
     <div id="og-cat-wrap"><label>Categoría</label>
     <select id="og-cat">
@@ -386,7 +387,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
     </select></div>
     <div id="og-meta-wrap" style="display:none"><label>↳ Súmalo a la meta (al pagarlo):</label><select id="og-meta"></select></div>
     <div id="og-tcid-wrap" style="display:none"><label>↳ ¿Cuál tarjeta?</label><select id="og-tcid"></select></div>
-    <div id="og-tc-hint" style="display:none;font-size:12px;color:var(--t2);margin-top:8px;line-height:1.5">💳 Al pagarlo suma a esa tarjeta y no descuenta tu efectivo del mes.</div>
+    <div id="og-tc-hint" style="display:none;font-size:12px;color:var(--t2);margin-top:8px;line-height:1.5"></div>
     <label style="display:flex;align-items:center;gap:8px;margin-top:12px;cursor:pointer"><input type="checkbox" id="og-rec" style="width:auto"> 🔁 Gasto recurrente mensual</label>
     <div class="mbtns"><button class="bcancel" onclick="closeOv('ov-gasto')">Cancelar</button><button class="bsave" onclick="saveGasto()">Guardar</button></div>
   </div>
@@ -511,7 +512,7 @@ function confDelIngreso(id,desc){showConfirm(`¿Eliminar "${desc}"?`,'Se quitar�
 
 const ICOS={arriendo:'🏠',renta:'🏠',servicios:'💡',comida:'🍽️',fna:'🏦',celular:'📱',tarjeta:'💳',seguro:'🛡️',gasolina:'⛽',ahorro:'💰',cadena:'🔗',mercado:'🛒',prestamo:'💵',internet:'🌐',gym:'🏋️',colegio:'🎒',universidad:'🎓'};
 const IBGS=['#fff0f0','#f0f4ff','#f0fff4','#fff8e1','#f3e5f5','#e0f7fa','#fce4ec'];
-const CAT_ICOS={'Vivienda':'🏠','Servicios':'💡','Hogar':'🏡','Familia':'👨‍👩‍👧','Transporte':'🚗','Alimentación':'🍽️','Salud':'💊','Educación':'🎓','Entretenimiento':'🎬','Tecnología':'📱','Deuda':'💳','Ahorro':'💰','Otros':'📦'};
+const CAT_ICOS={'Vivienda':'🏠','Servicios':'💡','Hogar':'🏡','Familia':'👨‍👩‍👧','Transporte':'🚗','Alimentación':'🍽️','Salud':'💊','Educación':'🎓','Entretenimiento':'🎬','Tecnología':'📱','Deuda':'💸','Ahorro':'💰','Otros':'📦'};
 function gIco(n){const k=n.toLowerCase();for(const i in ICOS)if(k.includes(i))return ICOS[i];return'💳';}
 function gBg(n){let h=0;for(let i=0;i<n.length;i++)h+=n.charCodeAt(i);return IBGS[h%IBGS.length];}
 function catIco(cat){return CAT_ICOS[cat]||'📦';}
@@ -556,7 +557,7 @@ function seedGastos(y,m){
   for(let i=1;i<=12;i++){
     let py=y,pm=m-i;while(pm<0){pm+=12;py--;}
     const r=localStorage.getItem(key(py,pm));
-    if(r){try{return (JSON.parse(r).gastos||[]).filter(g=>g.recurrente).map(g=>({...g,paid:false,_tcAmt:undefined,_tcApplied:undefined,_metaApplied:undefined}));}catch(e){return [];}}
+    if(r){try{return (JSON.parse(r).gastos||[]).filter(g=>g.recurrente).map(g=>({...g,paid:false,_tcAmt:undefined,_tcApplied:undefined,_abonoApplied:undefined,_metaApplied:undefined}));}catch(e){return [];}}
   }
   return DG.map(g=>({...g}));
 }
@@ -806,7 +807,7 @@ function rGastos(){
   const ingresos=gInc();const totalInc=ingresos.reduce((s,i)=>s+i.monto,0);
   const tcTotal=tcs.reduce((s,g)=>s+g.amount,0);const ingTot=C.neto+C.extInc;
   const metaName=id=>{const m=gMetas().find(x=>x.id===id);return m?(m.icono||'🐷')+' '+esc(m.nombre):'meta';};
-  const row=g=>{const safeName=esc(g.name);return `<div class="grow"><button class="chk ${g.paid?'on':''}" onclick="tPaid('${g.id}')"></button><div class="gico" style="background:${gBg(g.name)}">${catIco(g.cat)}</div><div class="ginf" onclick="openEdit('${g.id}')"><div class="gnm ${g.paid?'done':''}">${safeName}</div><div class="gsb">${esc(g.cat||'')}${g.recurrente?'<span class="ant-badge" style="background:var(--ibg);color:var(--it)">&#128260; mensual</span>':''}${g.tarjeta?'<span class="ant-badge" style="background:var(--rbg);color:var(--rt)">&#128179; tarjeta</span>':''}${(g.ahorro&&g.metaId)?`<span class="ant-badge" style="background:var(--tbg);color:var(--tt)">&#8594; ${metaName(g.metaId)}</span>`:''}</div></div><div class="gamt ${g.paid?'done':''}" onclick="openEdit('${g.id}')">${fmt(g.amount)}</div><button class="del" data-id="${g.id}" data-name="${safeName}" onclick="delGasto(this)">&#215;</button></div>`;}
+  const row=g=>{const safeName=esc(g.name);return `<div class="grow"><button class="chk ${g.paid?'on':''}" onclick="tPaid('${g.id}')"></button><div class="gico" style="background:${gBg(g.name)}">${catIco(g.cat)}</div><div class="ginf" onclick="openEdit('${g.id}')"><div class="gnm ${g.paid?'done':''}">${safeName}</div><div class="gsb">${esc(g.cat||'')}${g.recurrente?'<span class="ant-badge" style="background:var(--ibg);color:var(--it)">&#128260; mensual</span>':''}${g.tarjeta?'<span class="ant-badge" style="background:var(--rbg);color:var(--rt)">&#128179; compra TC</span>':''}${g.abonoTc?'<span class="ant-badge" style="background:var(--gbg);color:var(--gt)">&#128184; pago TC</span>':''}${(g.ahorro&&g.metaId)?`<span class="ant-badge" style="background:var(--tbg);color:var(--tt)">&#8594; ${metaName(g.metaId)}</span>`:''}</div></div><div class="gamt ${g.paid?'done':''}" onclick="openEdit('${g.id}')">${fmt(g.amount)}</div><button class="del" data-id="${g.id}" data-name="${safeName}" onclick="delGasto(this)">&#215;</button></div>`;}
   const incRow=i=>{const safeDesc=esc(i.desc);return `<div class="inc-row"><div class="inc-ico">&#128181;</div><div class="inc-inf" onclick="openEditIngreso('${i.id}')"><div class="inc-nm">${safeDesc}</div><div class="inc-sb">${esc(i.cat||'Otros')}</div></div><div class="inc-amt">${fmt(i.monto)}</div><button class="del" data-id="${i.id}" data-name="${safeDesc}" onclick="delIngreso(this)">&#215;</button></div>`;}
   const futureBanner=isFuture()?`<div class="tip ind" style="margin-bottom:10px"><span class="ti">⚡</span><div class="tb"><b>Mes futuro</b> — planificando ${MNS[curM]}. Gastos se pagan en ${curM===0?MNS[11]:MNS[curM-1]}.</div></div>`:'';
   document.getElementById('s-gastos').innerHTML=rHdr('Gastos',true)+`
@@ -1071,6 +1072,10 @@ function reconcileGasto(g){
   const tcShould=!!(g.tarjeta&&g.paid);const tap=g._tcApplied;
   if(tcShould){const cards=ensureTc();let card=cards.find(c=>c.id===g.tcId)||cards[0];g.tcId=card.id;if(!tap||tap.id!==card.id||tap.amt!==g.amount){if(tap){const c0=cards.find(c=>c.id===tap.id);if(c0)c0.saldo=Math.max(0,(+c0.saldo||0)-tap.amt);}card.saldo=(+card.saldo||0)+g.amount;sTcs(cards);g._tcApplied={id:card.id,amt:g.amount};}}
   else if(tap){const cards=gTcs();const c0=cards.find(c=>c.id===tap.id);if(c0){c0.saldo=Math.max(0,(+c0.saldo||0)-tap.amt);sTcs(cards);}delete g._tcApplied;}
+  // Abono/pago a tarjeta: BAJA el saldo de la tarjeta elegida (y cuenta como gasto en calcT).
+  const abShould=!!(g.abonoTc&&g.paid);const aap=g._abonoApplied;
+  if(abShould){const cards=ensureTc();let card=cards.find(c=>c.id===g.tcId)||cards[0];g.tcId=card.id;if(!aap||aap.id!==card.id||aap.amt!==g.amount){if(aap){const c0=cards.find(c=>c.id===aap.id);if(c0)c0.saldo=(+c0.saldo||0)+aap.amt;}card.saldo=Math.max(0,(+card.saldo||0)-g.amount);sTcs(cards);g._abonoApplied={id:card.id,amt:g.amount};}}
+  else if(aap){const cards=gTcs();const c0=cards.find(c=>c.id===aap.id);if(c0){c0.saldo=(+c0.saldo||0)+aap.amt;sTcs(cards);}delete g._abonoApplied;}
   const mShould=!!(g.ahorro&&g.paid&&g.metaId);const ap=g._metaApplied;
   if(mShould){if(!ap||ap.id!==g.metaId||ap.amt!==g.amount){if(ap){const ms=gMetas();const pm=ms.find(x=>x.id===ap.id);if(pm){pm.total=Math.max(0,(+pm.total||0)-ap.amt);sMetas(ms);}}const ms2=gMetas();const m=ms2.find(x=>x.id===g.metaId);if(m){m.total=(+m.total||0)+g.amount;sMetas(ms2);if(!ap)addAhorroMes(g.amount);}g._metaApplied={id:g.metaId,amt:g.amount};}}
   else if(ap){const ms=gMetas();const pm=ms.find(x=>x.id===ap.id);if(pm){pm.total=Math.max(0,(+pm.total||0)-ap.amt);sMetas(ms);}delete g._metaApplied;}
@@ -1079,12 +1084,12 @@ function fillMetaSelect(elId,sel){const el=document.getElementById(elId);if(!el)
 function fillTcSelect(elId,sel){const el=document.getElementById(elId);if(!el)return;const cs=ensureTc();el.innerHTML=cs.map(c=>`<option value="${c.id}">${esc(c.nombre)}</option>`).join('');if(sel)el.value=sel;}
 function tPaid(id){const d=gD();const g=d.gastos.find(x=>x.id===id);if(g){g.paid=!g.paid;reconcileGasto(g);sD(d);}renderAll();}
 let _ogTipo='efectivo';
-function ogSetTipo(t){_ogTipo=t;[['ef','efectivo'],['ah','ahorro'],['tc','tarjeta']].forEach(p=>document.getElementById('ogt-'+p[0]).classList.toggle('on',t===p[1]));document.getElementById('og-cat-wrap').style.display=(t==='ahorro')?'none':'';document.getElementById('og-meta-wrap').style.display=(t==='ahorro')?'':'none';document.getElementById('og-tcid-wrap').style.display=(t==='tarjeta')?'':'none';document.getElementById('og-tc-hint').style.display=(t==='tarjeta')?'':'none';}
+function ogSetTipo(t){_ogTipo=t;[['ef','efectivo'],['ah','ahorro'],['tc','tarjeta'],['ab','abono']].forEach(p=>document.getElementById('ogt-'+p[0]).classList.toggle('on',t===p[1]));document.getElementById('og-cat-wrap').style.display=(t==='ahorro'||t==='abono')?'none':'';document.getElementById('og-meta-wrap').style.display=(t==='ahorro')?'':'none';document.getElementById('og-tcid-wrap').style.display=(t==='tarjeta'||t==='abono')?'':'none';const h=document.getElementById('og-tc-hint');if(t==='tarjeta'){h.style.display='';h.textContent='💳 Suma a la deuda de esa tarjeta; no usa tu efectivo del mes.';}else if(t==='abono'){h.style.display='';h.textContent='💸 Baja la deuda de esa tarjeta y usa tu efectivo del mes (cuenta como gasto).';}else h.style.display='none';}
 function openAdd(){editId=null;document.getElementById('ogt').textContent='Agregar gasto';document.getElementById('og-nom').value='';document.getElementById('og-mnt').value='';document.getElementById('og-cat').value='Otros';document.getElementById('og-rec').checked=false;fillMetaSelect('og-meta');fillTcSelect('og-tcid');ogSetTipo('efectivo');openOv('ov-gasto');setTimeout(()=>document.getElementById('og-nom').focus(),150);}
-function openEdit(id){const d=gD();const g=d.gastos.find(x=>x.id===id);if(!g)return;editId=id;document.getElementById('ogt').textContent='Editar '+g.name;document.getElementById('og-nom').value=g.name;document.getElementById('og-mnt').value=g.amount;document.getElementById('og-cat').value=g.cat||'Otros';document.getElementById('og-rec').checked=!!g.recurrente;fillMetaSelect('og-meta',g.metaId);fillTcSelect('og-tcid',g.tcId);ogSetTipo(g.tarjeta?'tarjeta':(g.ahorro?'ahorro':'efectivo'));openOv('ov-gasto');}
-function saveGasto(){const name=document.getElementById('og-nom').value.trim();const amount=parseInt(document.getElementById('og-mnt').value)||0;const cat=document.getElementById('og-cat').value;const recurrente=document.getElementById('og-rec').checked;const ah=(_ogTipo==='ahorro');const tarjeta=(_ogTipo==='tarjeta');const metaId=ah?(document.getElementById('og-meta')?document.getElementById('og-meta').value:''):'';const tcId=tarjeta?(document.getElementById('og-tcid')?document.getElementById('og-tcid').value:''):'';if(!name)return;const d=gD();let g;if(editId){g=d.gastos.find(x=>x.id===editId);if(g){g.name=name;g.amount=amount;g.cat=ah?'Ahorro':cat;g.ahorro=ah;g.recurrente=recurrente;g.tarjeta=tarjeta;g.metaId=metaId;g.tcId=tcId;g.anticipado=false;}}else{g={id:'g_'+Date.now(),name,amount,cat:ah?'Ahorro':cat,paid:false,ahorro:ah,recurrente,tarjeta,metaId,tcId};d.gastos.push(g);}if(g)reconcileGasto(g);sD(d);closeOv('ov-gasto');renderAll();}
+function openEdit(id){const d=gD();const g=d.gastos.find(x=>x.id===id);if(!g)return;editId=id;document.getElementById('ogt').textContent='Editar '+g.name;document.getElementById('og-nom').value=g.name;document.getElementById('og-mnt').value=g.amount;document.getElementById('og-cat').value=g.cat||'Otros';document.getElementById('og-rec').checked=!!g.recurrente;fillMetaSelect('og-meta',g.metaId);fillTcSelect('og-tcid',g.tcId);ogSetTipo(g.tarjeta?'tarjeta':(g.abonoTc?'abono':(g.ahorro?'ahorro':'efectivo')));openOv('ov-gasto');}
+function saveGasto(){const name=document.getElementById('og-nom').value.trim();const amount=parseInt(document.getElementById('og-mnt').value)||0;const cat=document.getElementById('og-cat').value;const recurrente=document.getElementById('og-rec').checked;const ah=(_ogTipo==='ahorro');const tarjeta=(_ogTipo==='tarjeta');const abonoTc=(_ogTipo==='abono');const metaId=ah?(document.getElementById('og-meta')?document.getElementById('og-meta').value:''):'';const tcId=(tarjeta||abonoTc)?(document.getElementById('og-tcid')?document.getElementById('og-tcid').value:''):'';const catF=ah?'Ahorro':(abonoTc?'Deuda':cat);if(!name)return;const d=gD();let g;if(editId){g=d.gastos.find(x=>x.id===editId);if(g){g.name=name;g.amount=amount;g.cat=catF;g.ahorro=ah;g.recurrente=recurrente;g.tarjeta=tarjeta;g.abonoTc=abonoTc;g.metaId=metaId;g.tcId=tcId;g.anticipado=false;}}else{g={id:'g_'+Date.now(),name,amount,cat:catF,paid:false,ahorro:ah,recurrente,tarjeta,abonoTc,metaId,tcId};d.gastos.push(g);}if(g)reconcileGasto(g);sD(d);closeOv('ov-gasto');renderAll();}
 function delGasto(btn){const id=btn.dataset.id;const name=btn.dataset.name;confDel(id,name);}
-function confDel(id,name){showConfirm('¿Eliminar "'+name+'"?','Se quitará de este mes. No se puede deshacer.',()=>{const d=gD();const g=d.gastos.find(x=>x.id===id);if(g){g.tarjeta=false;g.ahorro=false;g.metaId='';reconcileGasto(g);}d.gastos=d.gastos.filter(x=>x.id!==id);sD(d);renderAll();});}
+function confDel(id,name){showConfirm('¿Eliminar "'+name+'"?','Se quitará de este mes. No se puede deshacer.',()=>{const d=gD();const g=d.gastos.find(x=>x.id===id);if(g){g.tarjeta=false;g.ahorro=false;g.abonoTc=false;g.metaId='';reconcileGasto(g);}d.gastos=d.gastos.filter(x=>x.id!==id);sD(d);renderAll();});}
 function openOv(id){document.getElementById(id).classList.add('open');}
 function closeOv(id){document.getElementById(id).classList.remove('open');}
 function showConfirm(t,s,cb){document.getElementById('ct').textContent=t;document.getElementById('cs').textContent=s;ccb=cb;openOv('ov-confirm');}

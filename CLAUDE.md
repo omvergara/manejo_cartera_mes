@@ -18,7 +18,7 @@ PWA de finanzas personales en UN SOLO archivo (`index.html`). HTML + CSS + JS va
 ```
 app_cfg              {nombre, neto, tipoNomina:'mensual'|'quincenal', nominaDia | q1,q2}
 app_{YYYY}_{M}       {gastos:[{id,name,amount,cat,paid,ahorro?,recurrente?,tarjeta?,metaId?,_tcAmt?,_metaApplied?}], neto?}  ← M 0-indexado
-                     · TIPO excluyente: efectivo (ninguno) | ahorro (→meta) | tarjeta (→deuda). El modal usa un toggle, no checkboxes sueltos (ogSetTipo)
+                     · TIPO excluyente (ogSetTipo): efectivo | ahorro (→meta) | tarjeta (compra: SUBE deuda, no toca caja) | abono (pago: BAJA deuda de g.tcId y SÍ cuenta como gasto/caja). Flags: ahorro/tarjeta/abonoTc + tcId/metaId. Marcas idempotentes _tcApplied/_abonoApplied/_metaApplied
                      · tarjeta? = pagado con tarjeta: suma a app_tc.saldo (reconcileGasto) y NO entra a la caja del mes (calcT lo salta)
                      · ahorro?+metaId? = al marcar pagado suma a esa meta de app_metas (reconcileGasto)
                      · _tcAmt/_metaApplied = marcas internas de idempotencia (no tocar)
