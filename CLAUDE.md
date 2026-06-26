@@ -36,7 +36,7 @@ app_tcs              tarjetas MÚLTIPLES: [{id,nombre,saldo,cuota,tasa}] (migra 
                      · deudaInfo() = amortización real mes a mes (último pago parcial); interés correcto. gasto.tcId elige tarjeta
 app_tc               (LEGACY) tarjeta única antigua — se migra a app_tcs
 app_metas            metas de ahorro v2: [{id,nombre,icono,total,meta,plazoMeses?}] (migra de app_meta {total,metaCasa}). Se configuran en modal (ov-metas); el total sube SOLO desde gastos tipo ahorro
-app_sav_{Y}_{M}      ahorro registrado por mes (racha de ahorro y ritmo)
+app_sav_{Y}_{M}      (LEGACY) contador viejo de ahorro/mes — ya no se usa; savMes() se calcula de los gastos ahorro pagados del mes
 app_prima_{Y}_{M}    (LEGACY) ya no se escribe — el planificador de prima se eliminó; la prima se registra como Ingreso extra cat 'Prima'
 app_pin              hash del PIN (sha256:… ó plain:…). EXCLUIDO del backup (getAllData lo omite)
 app_drive_cid        Client ID OAuth
