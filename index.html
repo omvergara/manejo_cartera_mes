@@ -411,7 +411,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
   </div>
 </div>
 
-<div class="overlay" id="ov-mrc"><div class="modal"><div class="mttl">💚 Guardar gasto mercado</div><div class="msub">¿Cuánto pagaste? Se guarda en gastos del mes.</div><label>Total pagado ($)</label><input type="number" id="om-mnt" placeholder="250000" inputmode="numeric"><div class="mbtns"><button class="bcancel" onclick="closeOv('ov-mrc')">Cancelar</button><button class="bsave" onclick="saveMrcGasto()">Guardar en gastos</button></div></div></div>
+<div class="overlay" id="ov-mrc"><div class="modal"><div class="mttl">🛒 Guardar mercado en gastos</div><div class="msub">Total de lo seleccionado: <b id="mrc-tot-modal"></b></div><label style="margin-bottom:8px">¿Cómo lo pagas?</label><div class="toggle-row"><button type="button" class="tgl-opt on" id="mrt-ef" onclick="mrcSetTipo('efectivo')">💵 Efectivo</button><button type="button" class="tgl-opt" id="mrt-tc" onclick="mrcSetTipo('tarjeta')">💳 Tarjeta</button></div><div id="mrc-tcid-wrap" style="display:none"><label>¿Cuál tarjeta?</label><select id="mrc-tcid"></select></div><div class="mbtns"><button class="bcancel" onclick="closeOv('ov-mrc')">Cancelar</button><button class="bsave" onclick="saveMrcGasto()" style="background:var(--green)">Guardar en gastos</button></div></div></div>
 <div class="overlay" id="ov-cc"><div class="modal"><div class="mttl">⚙️ Configurar cadenas</div><div class="msub">Una o varias cadenas. Cada una: pago mensual o quincenal, varios puestos y splits configurables.</div><div id="cc-body"></div></div></div>
 <div class="overlay" id="ov-import"><div class="modal"><div class="mttl">📥 Importar respaldo</div><div class="msub">Selecciona el archivo o pega el JSON. Reemplaza los datos actuales.</div><input type="file" id="import-file" accept=".json" style="margin-bottom:10px" onchange="importFromFile(event)"><label>O pega el JSON aquí</label><textarea id="import-txt" style="height:110px;resize:none;font-size:13px" placeholder='{"app_cfg":...}'></textarea><div class="mbtns"><button class="bcancel" onclick="closeOv('ov-import')">Cancelar</button><button class="bsave" onclick="doImport()">Importar</button></div></div></div>
 <div class="overlay" id="ov-drive"><div class="modal"><div class="mttl">☁️ Conectar Google Drive</div><div class="msub">Configura una sola vez. Después sincroniza solo.</div><div style="background:var(--ibg);border-radius:12px;padding:14px;margin-bottom:12px"><div style="font-size:13px;color:var(--it);line-height:1.8"><b>1.</b> <a href="https://console.cloud.google.com" target="_blank" style="color:var(--blue)">console.cloud.google.com</a><br><b>2.</b> Crea proyecto → habilita Google Drive API<br><b>3.</b> Pantalla OAuth → Externo → agrega tu correo<br><b>4.</b> Credenciales → ID cliente OAuth → App web<br><b>5.</b> Orígenes autorizados: URL exacta de la app<br><b>6.</b> Copia el Client ID abajo</div></div><label>Client ID</label><input type="text" id="drive-cid" placeholder="xxxx.apps.googleusercontent.com"><button class="bgreen" onclick="connectDrive()">Conectar y autorizar</button><div class="mbtns" style="margin-top:8px"><button class="bcancel" onclick="closeOv('ov-drive')" style="grid-column:span 2">Cerrar</button></div></div></div>
@@ -919,69 +919,23 @@ function saveCadenaConfig(){
 }
 
 // ── MERCADO ───────────────────────────────────────────────
-function rMercado(){const items=gM();const on=items.filter(i=>i.on).length;let html='';CATS.forEach(cat=>{const ci=items.filter(i=>i.cat===cat.k);if(!ci.length)return;const conOn=ci.filter(i=>i.on).length;const cid='cat_'+cat.k.replace(/[\s\/]/g,'_');html+=`<div><button class="cat-hdr-btn" onclick="toggleCat('${cid}')"><div class="cat-left"><span class="cat-ico">${cat.i}</span><span class="cat-name">${cat.k}</span>${conOn>0?`<span class="cat-cnt">${conOn}</span>`:''}</div><span class="cat-arrow" id="arr_${cid}">▾</span></button><div class="cat-items" id="${cid}">${ci.map(item=>`<div class="irow"><button class="ibox ${item.on?'on':''}" onclick="tItem('${item.id}')"></button><span class="iemo">${item.icon}</span><span class="inm ${item.on?'on':''}">${esc(item.name)}</span><button class="idel" onclick="confDelMrc('${item.id}')">×</button></div>`).join('')}</div></div>`;});
-  document.getElementById('s-mercado').innerHTML=rHdr('Mercado',false)+`<div class="content" style="padding-bottom:80px"><div class="tip info" style="margin-bottom:10px"><span class="ti">💡</span><div class="tb">Activa lo que necesitas comprar. Toca la categoría para expandir.</div></div><div class="mwrap"><div class="mtop"><div><div style="font-size:15px;font-weight:600">Lista del mes</div><div style="font-size:12px;color:var(--t2)">${on} seleccionados</div></div><button class="mrcbtn" onclick="deselectAll()">Limpiar todo</button></div>${html}<div class="add-row" style="flex-wrap:wrap"><input class="add-inp" id="ni" type="text" placeholder="Agregar producto..." style="flex:1 1 100%"><select class="add-inp" id="ni-cat" style="flex:1;min-width:0">${CATS.map(c=>`<option value="${c.k}">${c.i} ${c.k}</option>`).join('')}</select><button class="add-go" onclick="addItem()">+ Agregar</button></div></div></div>`;
+function rMercado(){const items=gM();const on=items.filter(i=>i.on).length;const tot=items.filter(i=>i.on).reduce((s,i)=>s+(+i.price||0),0);let html='';CATS.forEach(cat=>{const ci=items.filter(i=>i.cat===cat.k);if(!ci.length)return;const conOn=ci.filter(i=>i.on).length;const cid='cat_'+cat.k.replace(/[\s\/]/g,'_');html+=`<div><button class="cat-hdr-btn" onclick="toggleCat('${cid}')"><div class="cat-left"><span class="cat-ico">${cat.i}</span><span class="cat-name">${cat.k}</span>${conOn>0?`<span class="cat-cnt">${conOn}</span>`:''}</div><span class="cat-arrow" id="arr_${cid}">▾</span></button><div class="cat-items" id="${cid}">${ci.map(item=>`<div class="irow"><button class="ibox ${item.on?'on':''}" onclick="tItem('${item.id}')"></button><span class="iemo">${item.icon}</span><span class="inm ${item.on?'on':''}">${esc(item.name)}</span>${item.on?`<input class="add-inp" style="width:84px;flex:none;padding:5px 8px;font-size:13px" type="number" inputmode="numeric" placeholder="$ precio" value="${item.price||''}" onchange="setPrecio('${item.id}',this.value)">`:''}<button class="idel" onclick="confDelMrc('${item.id}')">×</button></div>`).join('')}</div></div>`;});
+  document.getElementById('s-mercado').innerHTML=rHdr('Mercado',false)+`<div class="content" style="padding-bottom:90px"><div class="tip info" style="margin-bottom:10px"><span class="ti">💡</span><div class="tb">Activa lo que vas a comprar y escribe el precio. Con 💾 lo sumas a los gastos del mes (efectivo o tarjeta).</div></div><div class="mwrap"><div class="mtop"><div><div style="font-size:15px;font-weight:600">Lista del mes</div><div style="font-size:12px;color:var(--t2)" id="mrc-sub">${on} seleccionados${tot?' · '+fmt(tot):''}</div></div><button class="mrcbtn" onclick="deselectAll()">Limpiar todo</button></div>${html}<div class="add-row" style="flex-wrap:wrap"><input class="add-inp" id="ni" type="text" placeholder="Agregar producto..." style="flex:1 1 100%"><select class="add-inp" id="ni-cat" style="flex:1;min-width:0">${CATS.map(c=>`<option value="${c.k}">${c.i} ${c.k}</option>`).join('')}</select><button class="add-go" onclick="addItem()">+ Agregar</button></div></div></div>`;
   document.getElementById('ni').addEventListener('keydown',e=>{if(e.key==='Enter')addItem();});
-  const fab=document.createElement('button');fab.className='fab green';fab.innerHTML='💾';fab.style.fontSize='22px';fab.onclick=()=>{openOv('ov-mrc');setTimeout(()=>document.getElementById('om-mnt').focus(),150);};document.body.appendChild(fab);
+  const fab=document.createElement('button');fab.className='fab green';fab.innerHTML='💾';fab.style.fontSize='22px';fab.onclick=openMrc;document.body.appendChild(fab);
 }
 function toggleCat(id){const el=document.getElementById(id);const ar=document.getElementById('arr_'+id);if(!el)return;const o=el.classList.contains('open');el.classList.toggle('open',!o);if(ar)ar.classList.toggle('open',!o);}
-function tItem(id){
-  const items=gM();
-  const it=items.find(x=>x.id===id);
-  if(!it) return;
-  it.on=!it.on;
-  sM(items);
-  // Actualizar solo el checkbox y el texto — sin redibujar todo
-  const btn=document.querySelector(`.ibox[onclick="tItem('${id}')"]`);
-  if(btn) btn.classList.toggle('on', it.on);
-  const nm=btn && btn.parentElement.querySelector('.inm');
-  if(nm){ nm.classList.toggle('on', it.on); }
-  // Actualizar contador de la categoría
-  const allItems=gM();
-  const catKey=it.cat;
-  const cid='cat_'+catKey.replace(/[\s\/]/g,'_');
-  const catItems=allItems.filter(x=>x.cat===catKey);
-  const conOn=catItems.filter(x=>x.on).length;
-  const cntEl=document.querySelector(`#arr_${cid}`)?.parentElement?.querySelector('.cat-cnt');
-  const hdrBtn=document.querySelector(`#arr_${cid}`)?.parentElement?.parentElement;
-  if(hdrBtn){
-    let cnt=hdrBtn.querySelector('.cat-cnt');
-    if(conOn>0){
-      if(cnt){ cnt.textContent=conOn; }
-      else {
-        const catName=hdrBtn.querySelector('.cat-name');
-        if(catName){
-          const span=document.createElement('span');
-          span.className='cat-cnt';
-          span.textContent=conOn;
-          catName.after(span);
-        }
-      }
-    } else {
-      if(cnt) cnt.remove();
-    }
-  }
-  // Actualizar badge nav y contador total
-  updBdg();
-  // Actualizar encabezado "X seleccionados"
-  const totalOn=gM().filter(i=>i.on).length;
-  const subEl=document.querySelector('.mtop div div:last-child');
-  if(subEl) subEl.textContent=totalOn+' seleccionados';
-}
-function deselectAll(){
-  sM(gM().map(i=>({...i,on:false})));
-  // Re-render solo mercado sin cerrar cats
-  const openCats=[...document.querySelectorAll('.cat-items.open')].map(el=>el.id);
-  rMercado();
-  openCats.forEach(id=>{
-    const el=document.getElementById(id);
-    const ar=document.getElementById('arr_'+id);
-    if(el){el.classList.add('open');if(ar)ar.classList.add('open');}
-  });
-}
+// Re-render de mercado conservando las categorías abiertas.
+function rMercadoKeepOpen(){const openCats=[...document.querySelectorAll('.cat-items.open')].map(el=>el.id);rMercado();openCats.forEach(id=>{const el=document.getElementById(id);const ar=document.getElementById('arr_'+id);if(el){el.classList.add('open');if(ar)ar.classList.add('open');}});updBdg();}
+function tItem(id){const items=gM();const it=items.find(x=>x.id===id);if(!it)return;it.on=!it.on;if(!it.on)it.price=0;sM(items);rMercadoKeepOpen();}
+function setPrecio(id,v){const items=gM();const it=items.find(x=>x.id===id);if(it){it.price=parseInt(v)||0;sM(items);}const tot=gM().filter(i=>i.on).reduce((s,i)=>s+(+i.price||0),0);const on=gM().filter(i=>i.on).length;const sub=document.getElementById('mrc-sub');if(sub)sub.textContent=on+' seleccionados'+(tot?' · '+fmt(tot):'');}
+function deselectAll(){sM(gM().map(i=>({...i,on:false,price:0})));rMercadoKeepOpen();}
+let _mrcTipo='efectivo';
+function mrcSetTipo(t){_mrcTipo=t;document.getElementById('mrt-ef').classList.toggle('on',t==='efectivo');document.getElementById('mrt-tc').classList.toggle('on',t==='tarjeta');document.getElementById('mrc-tcid-wrap').style.display=(t==='tarjeta')?'':'none';}
+function openMrc(){const tot=gM().filter(i=>i.on).reduce((s,i)=>s+(+i.price||0),0);if(!tot){alert('Activa productos y escribe sus precios primero.');return;}document.getElementById('mrc-tot-modal').textContent=fmt(tot);fillTcSelect('mrc-tcid');mrcSetTipo('efectivo');openOv('ov-mrc');}
 function addItem(){const inp=document.getElementById('ni');const name=(inp.value||'').trim();if(!name)return;const catSel=document.getElementById('ni-cat');const cat=catSel?catSel.value:'Otros';const ico=(CATS.find(c=>c.k===cat)||{}).i||'🛍️';const items=gM();items.push({id:'mx_'+Date.now(),name,icon:ico,cat,on:true});sM(items);renderAll();}
 function confDelMrc(id){const it=gM().find(x=>x.id===id);const name=it?it.name:'';showConfirm(`¿Quitar "${name}"?`,'Se elimina permanentemente.',()=>{sM(gM().filter(x=>x.id!==id));renderAll();});}
-function saveMrcGasto(){const monto=parseInt(document.getElementById('om-mnt').value)||0;if(!monto)return;const d=gD();const ex=d.gastos.find(g=>g.id==='mercado_g');if(ex){ex.amount=monto;ex.paid=true;}else d.gastos.push({id:'mercado_g',name:'Mercado',amount:monto,cat:'Alimentación',paid:true});sD(d);deselectAll();closeOv('ov-mrc');}
+function saveMrcGasto(){const onItems=gM().filter(i=>i.on);const total=onItems.reduce((s,i)=>s+(+i.price||0),0);if(!total){closeOv('ov-mrc');return;}const tarjeta=(_mrcTipo==='tarjeta');const tcId=tarjeta?(document.getElementById('mrc-tcid')?document.getElementById('mrc-tcid').value:''):'';const d=gD();const g={id:'g_'+Date.now(),name:'Mercado',amount:total,cat:'Alimentación',paid:true,ahorro:false,tarjeta,abonoTc:false,metaId:'',tcId};d.gastos.push(g);reconcileGasto(g);sD(d);sM(gM().map(i=>({...i,on:false,price:0})));closeOv('ov-mrc');goTo('gastos');}
 
 // ── ANÁLISIS ──────────────────────────────────────────────
 function rMas(){
