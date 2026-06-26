@@ -394,6 +394,8 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
   </div>
 </div>
 
+<div class="overlay" id="ov-hormiga"><div class="modal"><div class="mttl">🐜 Gasto hormiga</div><div class="msub">Pequeños gastos del día (tinto, cigarrillo, etc.). Se suman a un único "Gastos hormiga" del mes.</div><label>¿Qué fue? (opcional)</label><input type="text" id="oh-desc" placeholder="Ej: Tinto"><label>Monto ($)</label><input type="number" id="oh-mnt" inputmode="numeric" placeholder="2000"><div class="mbtns"><button class="bcancel" onclick="closeOv('ov-hormiga')">Cancelar</button><button class="bsave" onclick="saveHormiga()" style="background:#8d6e63">Sumar</button></div></div></div>
+
 <div class="overlay" id="ov-ingreso">
   <div class="modal">
     <div class="mttl" id="oing-t">Ingreso extra</div>
@@ -508,6 +510,9 @@ let editIngId=null;
 function openAddIngreso(){editIngId=null;document.getElementById('oing-t').textContent='Ingreso extra';document.getElementById('oing-nom').value='';document.getElementById('oing-mnt').value='';document.getElementById('oing-cat').value='Trabajo adicional';openOv('ov-ingreso');setTimeout(()=>document.getElementById('oing-nom').focus(),150);}
 function openEditIngreso(id){const it=gInc().find(x=>x.id===id);if(!it)return;editIngId=id;document.getElementById('oing-t').textContent='Editar ingreso';document.getElementById('oing-nom').value=it.desc;document.getElementById('oing-mnt').value=it.monto;document.getElementById('oing-cat').value=it.cat||'Otros';openOv('ov-ingreso');}
 function saveIngreso(){const desc=document.getElementById('oing-nom').value.trim();const monto=parseInt(document.getElementById('oing-mnt').value)||0;const cat=document.getElementById('oing-cat').value;if(!desc||!monto)return;const inc=gInc();if(editIngId){const it=inc.find(x=>x.id===editIngId);if(it){it.desc=desc;it.monto=monto;it.cat=cat;}}else inc.push({id:'inc_'+Date.now(),desc,monto,cat});sInc(inc);closeOv('ov-ingreso');renderAll();}
+// Gasto hormiga: suma pequeños gastos diarios a un único gasto "Gastos hormiga" del mes.
+function openHormiga(){document.getElementById('oh-desc').value='';document.getElementById('oh-mnt').value='';openOv('ov-hormiga');setTimeout(()=>document.getElementById('oh-mnt').focus(),150);}
+function saveHormiga(){const desc=document.getElementById('oh-desc').value.trim();const monto=parseInt(document.getElementById('oh-mnt').value)||0;if(!monto)return;const d=gD();let g=d.gastos.find(x=>x.id==='g_hormiga');if(!g){g={id:'g_hormiga',name:'Gastos hormiga',amount:0,cat:'Otros',paid:true,hormiga:true,hcount:0,hitems:[]};d.gastos.push(g);}g.amount=(+g.amount||0)+monto;g.hcount=(+g.hcount||0)+1;g.paid=true;if(!g.hitems)g.hitems=[];g.hitems.push({desc:desc||'gasto',monto});sD(d);closeOv('ov-hormiga');renderAll();}
 function delIngreso(btn){const id=btn.dataset.id;const name=btn.dataset.name;confDelIngreso(id,name);}
 function confDelIngreso(id,desc){showConfirm(`¿Eliminar "${desc}"?`,'Se quitará de los ingresos de este mes.',()=>{sInc(gInc().filter(x=>x.id!==id));renderAll();});}
 
@@ -813,7 +818,7 @@ function rGastos(){
   const ingresos=gInc();const totalInc=ingresos.reduce((s,i)=>s+i.monto,0);
   const tcTotal=tcs.reduce((s,g)=>s+g.amount,0);const ingTot=C.neto+C.extInc;
   const metaName=id=>{const m=gMetas().find(x=>x.id===id);return m?(m.icono||'🐷')+' '+esc(m.nombre):'meta';};
-  const row=g=>{const safeName=esc(g.name);return `<div class="grow"><button class="chk ${g.paid?'on':''}" onclick="tPaid('${g.id}')"></button><div class="gico" style="background:${gBg(g.name)}">${catIco(g.cat)}</div><div class="ginf" onclick="openEdit('${g.id}')"><div class="gnm ${g.paid?'done':''}">${safeName}</div><div class="gsb">${esc(g.cat||'')}${g.recurrente?'<span class="ant-badge" style="background:var(--ibg);color:var(--it)">&#128260; mensual</span>':''}${g.tarjeta?'<span class="ant-badge" style="background:var(--rbg);color:var(--rt)">&#128179; compra TC</span>':''}${g.abonoTc?'<span class="ant-badge" style="background:var(--gbg);color:var(--gt)">&#128184; pago TC</span>':''}${(g.ahorro&&g.metaId)?`<span class="ant-badge" style="background:var(--tbg);color:var(--tt)">&#8594; ${metaName(g.metaId)}</span>`:''}</div></div><div class="gamt ${g.paid?'done':''}" onclick="openEdit('${g.id}')">${fmt(g.amount)}</div><button class="del" data-id="${g.id}" data-name="${safeName}" onclick="delGasto(this)">&#215;</button></div>`;}
+  const row=g=>{const safeName=esc(g.name);return `<div class="grow"><button class="chk ${g.paid?'on':''}" onclick="tPaid('${g.id}')"></button><div class="gico" style="background:${gBg(g.name)}">${catIco(g.cat)}</div><div class="ginf" onclick="openEdit('${g.id}')"><div class="gnm ${g.paid?'done':''}">${safeName}</div><div class="gsb">${esc(g.cat||'')}${g.hormiga?`<span class="ant-badge" style="background:#efebe9;color:#5d4037">&#128028; ${g.hcount||0} registros</span>`:''}${g.recurrente?'<span class="ant-badge" style="background:var(--ibg);color:var(--it)">&#128260; mensual</span>':''}${g.tarjeta?'<span class="ant-badge" style="background:var(--rbg);color:var(--rt)">&#128179; compra TC</span>':''}${g.abonoTc?'<span class="ant-badge" style="background:var(--gbg);color:var(--gt)">&#128184; pago TC</span>':''}${(g.ahorro&&g.metaId)?`<span class="ant-badge" style="background:var(--tbg);color:var(--tt)">&#8594; ${metaName(g.metaId)}</span>`:''}</div></div><div class="gamt ${g.paid?'done':''}" onclick="openEdit('${g.id}')">${fmt(g.amount)}</div><button class="del" data-id="${g.id}" data-name="${safeName}" onclick="delGasto(this)">&#215;</button></div>`;}
   const incRow=i=>{const safeDesc=esc(i.desc);return `<div class="inc-row"><div class="inc-ico">&#128181;</div><div class="inc-inf" onclick="openEditIngreso('${i.id}')"><div class="inc-nm">${safeDesc}</div><div class="inc-sb">${esc(i.cat||'Otros')}</div></div><div class="inc-amt">${fmt(i.monto)}</div><button class="del" data-id="${i.id}" data-name="${safeDesc}" onclick="delIngreso(this)">&#215;</button></div>`;}
   const futureBanner=isFuture()?`<div class="tip ind" style="margin-bottom:10px"><span class="ti">⚡</span><div class="tb"><b>Mes futuro</b> — planificando ${MNS[curM]}. Gastos se pagan en ${curM===0?MNS[11]:MNS[curM-1]}.</div></div>`:'';
   document.getElementById('s-gastos').innerHTML=rHdr('Gastos',true)+`
@@ -834,6 +839,7 @@ function rGastos(){
   </div>`;
   const fab=document.createElement('button');fab.className='fab blue';fab.innerHTML='＋';fab.onclick=openAdd;document.body.appendChild(fab);
   const fab2=document.createElement('button');fab2.className='fab2';fab2.innerHTML='💵';fab2.onclick=openAddIngreso;document.body.appendChild(fab2);
+  const fab3=document.createElement('button');fab3.className='fab';fab3.innerHTML='🐜';fab3.style.right='144px';fab3.style.background='#8d6e63';fab3.style.fontSize='22px';fab3.onclick=openHormiga;document.body.appendChild(fab3);
 }
 
 // ── CADENA ────────────────────────────────────────────────
