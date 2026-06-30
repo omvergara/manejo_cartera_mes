@@ -1,6 +1,6 @@
 # 💰 Cartera
 
-> Finanzas personales del mes, en **un solo archivo HTML**. Sin servidores, sin base de datos, sin frameworks, sin cuentas. Tus datos viven en tu navegador y, si quieres, en *tu* Google Drive.
+> Tus finanzas del mes, claras y en tu bolsillo. **Una sola pantalla te dice cuánta plata te queda libre.** Sin crear cuentas, sin servidores, sin publicidad. Tus datos viven en *tu* teléfono (y, si quieres, en *tu* Google Drive).
 
 ![Tipo](https://img.shields.io/badge/tipo-PWA-blueviolet)
 ![Stack](https://img.shields.io/badge/stack-HTML%20%2B%20CSS%20%2B%20JS%20vanilla-f7df1e)
@@ -8,185 +8,206 @@
 ![Plataforma](https://img.shields.io/badge/mobile--first-iOS%20%2F%20Safari-black)
 [![Deploy](https://img.shields.io/badge/deploy-Cloudflare%20Pages-F38020)](https://cartera-mes.pages.dev)
 
-### 🔗 En vivo → **[cartera-mes.pages.dev](https://cartera-mes.pages.dev)**
+### 🔗 Pruébala ya → **[cartera-mes.pages.dev](https://cartera-mes.pages.dev)**
 
-Aplicación web progresiva (PWA) de **cartera mensual personal**, pensada para usarse desde el iPhone. Pensada para el contexto financiero colombiano: prima semestral, cadenas de ahorro, FNA, quincenas y nómina.
+---
+
+## ¿Qué es esto? (en simple)
+
+**Cartera** es una app para llevar las cuentas del mes desde el celular. La idea es responder una sola pregunta importante:
+
+> **"Después de pagar todo lo del mes, ¿cuánta plata me queda libre?"**
+
+Lo abres, registras tus gastos fijos (arriendo, servicios, mercado…), tus ahorros y tus deudas, y la app te muestra en grande lo que te queda. Vas marcando lo que ya pagaste y ves el progreso del mes.
+
+Está pensada para Colombia: maneja **quincenas y nómina**, la **prima** de junio y diciembre, las **cadenas de ahorro (san)**, el **FNA** y los **préstamos a la familia**.
+
+**No necesitas registrarte ni dar datos a nadie.** Todo se guarda en el navegador de tu teléfono. Es gratis y funciona aunque te quedes sin internet.
 
 ---
 
 ## Tabla de contenidos
 
-- [Características](#características)
+- [Las pantallas, una por una](#las-pantallas-una-por-una)
 - [Capturas](#capturas)
-- [Cómo se usa](#cómo-se-usa)
-- [Arquitectura](#arquitectura)
-- [Despliegue](#despliegue)
-- [Google Drive sync (opcional)](#configurar-google-drive-sync-opcional)
-- [Instalación como app en iOS](#instalación-como-app-en-ios)
-- [Troubleshooting](#troubleshooting)
-- [Modelo de datos del respaldo](#modelo-de-datos-del-respaldo)
-- [Stack](#stack)
-- [Licencia](#licencia)
+- [Lo importante que debes saber](#lo-importante-que-debes-saber)
+- [Instalarla en el iPhone](#instalarla-en-el-iphone-como-una-app)
+- [Respaldar tus datos](#respaldar-tus-datos-no-los-pierdas)
+- [Para quien quiera el detalle técnico](#-para-quien-quiera-el-detalle-técnico)
 
 ---
 
-## Características
+## Las pantallas, una por una
 
-- **Gastos mensuales** con checklist de pagado/pendiente, montos editables, categorías (incluida **Familia**) y **gastos recurrentes** que se arrastran solos a los meses siguientes
-- **Convención de mes** clara: el mes que ves = el mes que el dinero **cubre** (lo pagas el día de nómina del mes anterior); se enseña en el onboarding
-- **Inicio enfocado en lo importante**: el número grande es **lo Libre del mes**, con recordatorio antes de la nómina, botón "apartar para ahorro" y aviso anticipado de la prima
-- **Ahorros planillados** separados de los gastos (FNA, cadenas de ahorro)
-- **Cadenas de ahorro (san) rediseñadas**: **una o varias** cadenas, **varios puestos**, split configurable (no solo 50/50), pago **mensual o quincenal**, y el **cobro del pozo** de tu turno visible
-- **Lista de mercado** por categorías colapsables, con **selector de categoría** al agregar y registro del gasto total al terminar
-- **Prima semestral** (junio/diciembre, norma laboral colombiana) con asistente de distribución y **monto real editable**
-- **Tracker de deuda** (tarjeta) con **interés mensual (%)** y meses para liquidar por amortización (avisa si la cuota no cubre ni los intereses); registra **compras y abonos** que suben/bajan el saldo
-- **Metas de ahorro múltiples** con nombre e icono (ej. FNA, Casa, Emergencia), barra de progreso, abonos y **racha de meses ahorrando**
-- **Configuración separada del análisis**: tarjeta y metas se editan en Ajustes; Análisis queda solo de lectura
-- La **prima** se puede registrar con su monto real: la parte libre **entra como ingreso del mes**, y deuda/ahorro se aplican aparte
-- **Historial mensual** con gráfico comparativo y **desglose por categorías**; el histórico **no se distorsiona** si te suben el salario (se congela el sueldo de cada mes)
-- **Bloqueo con PIN** (hash local, nunca viaja al respaldo) y **modo oscuro** (tema iOS)
-- **Exportar**: respaldo JSON completo + histórico CSV para Excel
-- **Importar / restaurar**: reemplazo **atómico** desde JSON o Google Drive (sin dejar datos viejos mezclados)
-- **Google Drive sync** (opcional): respaldo automático en cada cambio + **restauración** desde la nube
+La app tiene 5 botones abajo: **Inicio · Gastos · Cobros · Mercado · Ajustes.**
+
+### 🏠 Inicio
+Tu foto del mes. El número grande es **lo que te queda libre**. También ves cuántos días faltan para la nómina, cuánto llevas pagado y avisos útiles ("mañana es nómina", "vas al día", "te queda X libre", recordatorio de deuda).
+
+### 💸 Gastos
+La lista de todo lo que pagas en el mes. Cada gasto se **chulea** cuando lo pagas. Aquí puedes:
+- Marcar un gasto como **recurrente** 🔁 para que aparezca solo cada mes.
+- Elegir cómo lo pagas: **efectivo**, **ahorro** (suma a una meta), **compra con tarjeta** (sube tu deuda) o **pago de tarjeta** (baja la deuda).
+- Sumar **gastos hormiga** 🐜 (el tinto, el cigarrillo, el bus): pequeños gastos del día que se juntan en uno solo.
+- Registrar **ingresos extra** 💵 (un freelance, una venta, la prima).
+
+### 🤝 Cobros — *la plata que entra o que te deben*
+Un módulo con **dos pestañas**:
+
+- **🔗 Cadena** — tu cadena de ahorro (san). Marcas cada cuota quincenal o mensual, ves cuánto llevas y un **timeline** que te dice en qué mes te toca **cobrar el pozo**. Soporta tener **un puesto propio y uno compartido** a la vez (cada turno aparece con su monto).
+- **🤝 Préstamos** — el dinero que **tú le prestas a la familia**. Configuras hasta **5 préstamos** (a quién, monto, en cuántas cuotas, y un interés mensual opcional). La app calcula la **cuota** y tú **chuleas cada pago** que te hacen. Cada cuota que recibes entra automáticamente como un **ingreso extra "Préstamos recibido"** del mes, y ves en todo momento cuánto te falta por cobrar.
+
+### 🛒 Mercado
+Tu lista de mercado por categorías (cocina, proteína, aseo…). Activas lo que vas a comprar, le pones precio, y al terminar la guardas como **un gasto del mes** (eliges si lo pagaste en efectivo o con tarjeta).
+
+### ⚙️ Ajustes
+Tu perfil (salario y día de pago), tus **tarjetas** y **metas de ahorro**, los respaldos (exportar / importar), la conexión con **Google Drive**, el **PIN** de bloqueo y el **modo oscuro**.
+
+> El **Análisis** (historial de meses, gastos por categoría, metas y deuda) lo abres desde el botón **"Ver análisis completo"** en Inicio.
 
 ---
 
 ## Capturas
 
-| Inicio | Gastos | Cadena de ahorro |
+| Inicio | Gastos | Agregar gasto |
 |:---:|:---:|:---:|
-| ![Inicio](docs/01-inicio.png) | ![Gastos](docs/02-gastos.png) | ![Cadena](docs/03-cadena.png) |
+| ![Inicio](docs/01-inicio.png) | ![Gastos](docs/02-gastos.png) | ![Agregar gasto](docs/04-agregar-gasto.png) |
 
-| Mercado | Ajustes |
-|:---:|:---:|
-| ![Mercado](docs/04-mercado.png) | ![Ajustes](docs/06-ajustes.png) |
+| Cobros · Cadena | Cobros · Préstamos | Préstamos con interés |
+|:---:|:---:|:---:|
+| ![Cadena](docs/07-cobros-cadena.png) | ![Préstamos](docs/08-cobros-prestamos.png) | ![Préstamos con interés](docs/09-cobros-prestamos-interes.png) |
 
----
+| Mercado | Guardar mercado | Análisis |
+|:---:|:---:|:---:|
+| ![Mercado](docs/10-mercado.png) | ![Guardar mercado](docs/11-mercado-guardar.png) | ![Análisis](docs/12-analisis.png) |
 
-## Cómo se usa
-
-1. **Primer arranque** → un onboarding pide los datos básicos (salario neto, día de nómina). Nada viene precargado: la app es genérica y cada quien configura lo suyo.
-2. **Pantalla Inicio** → resumen del mes: neto, días para nómina, totales de gastos/ahorros y metas.
-3. **Gastos** → marca lo pagado, edita montos, separa lo que es ahorro.
-4. **Cadena** → configura tu cadena de ahorro y marca los pagos quincenales.
-5. **Mercado** → arma la lista por categorías y registra el gasto al terminar.
-6. **Más / Ajustes** → análisis histórico, prima, deuda, meta de ahorro, exportar/importar y conectar Google Drive.
-
-La app navega entre meses (del mes más antiguo con datos hasta el mes actual +1) y vuelve al mes actual con **"Hoy ↩"**.
+| Metas y tarjetas | Ingreso extra | Ajustes |
+|:---:|:---:|:---:|
+| ![Metas y tarjetas](docs/13-analisis-metas-tarjetas.png) | ![Ingreso extra](docs/05-ingreso-extra.png) | ![Ajustes](docs/14-ajustes.png) |
 
 ---
 
-## Arquitectura
+## Lo importante que debes saber
 
-**Separación absoluta código / datos:** el código (`index.html`) es 100 % genérico y nunca contiene datos personales. Los datos viven en el navegador del usuario.
+### 📅 El mes que ves es el mes que la plata *cubre*
+La nómina que te pagan, por ejemplo, el 25, normalmente cubre el **mes siguiente**. Por eso la app registra los gastos bajo el mes que **cubren**, no el día en que los pagas. La cadena de ahorro funciona igual: la pagas el mes anterior al que cubre. Esto la app te lo explica desde el primer uso.
+
+Puedes moverte entre meses con las flechas ‹ › (hasta 2 meses hacia adelante para planear) y volver al actual con **"Hoy ↩"**.
+
+### 🔒 Tus datos son tuyos
+Nada sale de tu teléfono a menos que tú conectes tu Google Drive. No hay servidor que guarde tu información. Puedes poner un **PIN** para que nadie más la abra (el PIN nunca viaja a la nube).
+
+### 💵 Formato y moneda
+Todo en pesos colombianos con separador de miles (`$1.000.000`) y la app está 100 % en español.
+
+---
+
+## Instalarla en el iPhone (como una app)
+
+1. Abre **[cartera-mes.pages.dev](https://cartera-mes.pages.dev)** en **Safari**.
+2. Toca el botón **Compartir** (el cuadro con la flecha hacia arriba).
+3. **"Agregar a pantalla de inicio".**
+
+Queda con su propio ícono y sin la barra del navegador, igual que una app de la tienda. (En Android funciona igual desde Chrome → "Agregar a pantalla de inicio".)
+
+---
+
+## Respaldar tus datos (no los pierdas)
+
+Como todo vive en el navegador, si borras el caché de Safari o cambias de teléfono, los datos se van. Para evitarlo tienes tres opciones, todas en **Ajustes**:
+
+- **Respaldo JSON** — descarga un archivo con todo. Guárdalo donde quieras y luego *Importar* para recuperarlo.
+- **Histórico CSV** — una tabla de tus gastos e ingresos para abrir en Excel.
+- **Google Drive (recomendado)** — conéctalo una vez y la app guarda un respaldo **automático** en *tu* Drive cada vez que cambias algo. Si cambias de teléfono, restauras desde ahí. (Configuración paso a paso más abajo, en la sección técnica.)
+
+> 💡 La restauración **reemplaza** lo que tengas en el teléfono por el respaldo (no mezcla), así que tus datos nunca quedan a medias.
+
+---
+
+## 🛠️ Para quien quiera el detalle técnico
+
+<details>
+<summary><b>Arquitectura, modelo de datos, despliegue, Google Drive y tests</b> (clic para expandir)</summary>
+
+### Características (resumen técnico)
+
+- **Un solo archivo** `index.html`: HTML + CSS + JS vanilla, **cero dependencias de build**, cero npm.
+- **Separación absoluta código/datos**: el código es 100 % genérico y nunca contiene datos personales; los datos viven en `localStorage` con prefijo `app_`.
+- **Gastos** con tipo excluyente (efectivo / ahorro→meta / compra TC / pago TC), recurrentes, gastos hormiga e ingresos extra.
+- **Convención de mes** = el mes que el dinero cubre (no el de pago).
+- **Módulo Cobros**: cadenas de ahorro v2 (varias cadenas, varios puestos, splits configurables, mensual/quincenal, cobro del pozo) + **préstamos a familia** (hasta 5, cuota por amortización, interés mensual opcional, cada cuota pagada se registra como ingreso "Préstamos recibido").
+- **Tarjetas múltiples** con interés mensual (%) y meses para liquidar por amortización; deuda derivada de compras y abonos.
+- **Metas de ahorro múltiples** con icono, progreso y racha.
+- **Análisis** histórico con gráfico, desglose por categoría y salario congelado por mes (el histórico no se distorsiona al subir el sueldo).
+- **PIN** (hash local, excluido del respaldo) y **modo oscuro**.
+- **Exportar/Importar** JSON + CSV y **Google Drive sync** opcional (scope `drive.file`).
+
+### Modelo de datos (`localStorage`, prefijo `app_`)
 
 ```
-index.html  ← TODO: HTML + CSS + JS vanilla en un solo archivo
-│
-├── localStorage (claves con prefijo "app_")
-│   ├── app_cfg            → nombre, salario neto, tipo de nómina y día(s)
-│   ├── app_{YYYY}_{M}     → gastos del mes (+ snapshot del salario de ese mes)
-│   ├── app_inc_{YYYY}_{M} → ingresos extra del mes
-│   ├── app_cd_{YYYY}_{M}  → estado de pagos de cadena del mes (v2)
-│   ├── app_ccfg           → cadenas (v2: array con posiciones, splits, frecuencia)
-│   ├── app_mrc            → lista de mercado
-│   ├── app_tc             → tarjeta de crédito (saldo, cuota, tasa % mensual)
-│   ├── app_metas          → metas de ahorro [{id,nombre,icono,total,meta}]
-│   ├── app_sav_{Y}_{M}    → ahorro registrado por mes (racha y ritmo)
-│   ├── app_prima_{Y}_{M}  → distribución de la prima del semestre
-│   ├── app_pin            → hash del PIN (excluido del respaldo)
-│   ├── app_drive_cid      → Client ID de Google OAuth
-│   └── app_drive_fid      → ID del archivo de respaldo en Drive
-│
-└── Google Drive API (opcional)
-    └── cartera_backup.json ← respaldo automático con scope drive.file
+app_cfg              → nombre, salario neto, tipo de nómina y día(s)
+app_{YYYY}_{M}       → gastos del mes (+ snapshot del salario de ese mes). M es 0-indexado
+app_inc_{YYYY}_{M}   → ingresos extra del mes (incl. categoría "Préstamos recibido")
+app_cd_{YYYY}_{M}    → estado de pagos de cadena del mes (v2)
+app_ccfg             → cadenas (v2: array con posiciones, splits, frecuencia)
+app_prestamos        → préstamos a familia [{id,persona,capital,meses,interes,cuotas}]
+app_mrc              → lista de mercado
+app_tcs              → tarjetas múltiples [{id,nombre,base,cuota,tasa}] (tasa = % mensual)
+app_metas            → metas de ahorro [{id,nombre,icono,total,meta}]
+app_pin              → hash del PIN (excluido del respaldo)
+app_drive_cid/fid    → Client ID OAuth y file ID del respaldo en Drive
 ```
 
-**Principio de privacidad:** los datos viven solo en el navegador del usuario y, opcionalmente, en *su* Google Drive. El scope `drive.file` solo permite a la app tocar archivos que ella misma creó — nunca el resto del Drive.
+> Claves *legacy* que se migran solas al esquema nuevo: `app_tc` (tarjeta única → `app_tcs`), `app_meta` (→ `app_metas`), `app_sav_*` y `app_prima_*` (ya no se escriben).
 
----
+**Privacidad:** los datos viven solo en el navegador del usuario y, opcionalmente, en *su* Google Drive. El scope `drive.file` solo permite a la app tocar archivos que ella misma creó — nunca el resto del Drive. El JSON exportado es un objeto plano `{ clave: valorString }` con todas las claves `app_*` (el PIN se excluye a propósito); restaurar reemplaza de forma **atómica**.
 
-## Despliegue
+### Despliegue
 
-### Requisitos
-- Repo en GitHub (público o privado)
-- Cuenta gratuita de Cloudflare Pages (o cualquier hosting estático: Netlify, Vercel, GitHub Pages)
+Hosting estático, sin pipeline de build:
 
-### Pasos
-1. Asegúrate de que `index.html` esté en la raíz del repo.
-2. En Cloudflare Pages: **Create application → Pages → Connect to Git →** selecciona este repo.
-3. **No configures build** (es HTML puro): deja Build command vacío y Output directory en la raíz. → **Deploy**.
-4. Opcional: configura un dominio o cambia el subdominio del proyecto.
+1. `index.html` en la raíz del repo.
+2. Cloudflare Pages: **Create application → Pages → Connect to Git →** selecciona el repo.
+3. **Sin build**: Build command vacío, Output directory en la raíz → **Deploy**.
 
-> Cada `git push` a la rama `main` redespliega automáticamente (~30 s).
+> Cada `git push` a `main` redespliega automáticamente (~30 s).
 
----
+### Configurar Google Drive sync (opcional)
 
-## Configurar Google Drive sync (opcional)
+1. [console.cloud.google.com](https://console.cloud.google.com) con tu cuenta **personal** de Google.
+2. Crea un proyecto → **APIs y servicios → Biblioteca →** habilita **Google Drive API**.
+3. **Pantalla de consentimiento OAuth →** tipo **Externo →** agrega tu correo en *Usuarios de prueba*.
+4. **Credenciales → Crear → ID de cliente OAuth → Aplicación web** → en *Orígenes de JavaScript autorizados* pon la URL exacta de la app (`https://cartera-mes.pages.dev`, **sin** barra final).
+5. Copia el **Client ID** y pégalo en **Ajustes → Conectar Google Drive →** autoriza.
 
-1. Entra a [console.cloud.google.com](https://console.cloud.google.com) con tu cuenta **personal** de Google (no corporativa).
-2. Crea un proyecto nuevo.
-3. **APIs y servicios → Biblioteca →** habilita **Google Drive API**.
-4. **Pantalla de consentimiento OAuth →** tipo **Externo →** crear.
-   - En *Usuarios de prueba* agrega tu propio correo (evita el proceso de verificación de Google).
-5. **Credenciales → Crear → ID de cliente OAuth → Aplicación web**.
-   - *Orígenes de JavaScript autorizados*: la URL exacta de la app (`https://cartera-mes.pages.dev`, **sin** barra final).
-6. Copia el **Client ID**.
-7. En la app: **Ajustes → Conectar Google Drive →** pega el Client ID → autoriza.
+El access token dura ~1 hora; la app funciona 100 % local sin token (solo se pausa el respaldo automático). En *Ajustes* aparece "Renovar token" cuando expira.
 
-### Notas sobre el token
-- El access token expira en ~1 hora (diseño de Google Identity Services).
-- La app funciona 100 % offline/local sin token; solo se pausa el respaldo automático.
-- En *Ajustes* aparece **"Renovar token"** cuando expira; un toque lo reactiva.
-
----
-
-## Instalación como app en iOS
-
-Safari → abre la URL → botón **Compartir** → **Agregar a pantalla de inicio**. Queda con ícono propio y sin la barra del navegador, como una app nativa.
-
----
-
-## Troubleshooting
+### Troubleshooting
 
 | Problema | Causa | Solución |
 |----------|-------|----------|
-| `Error 400: redirect_uri_mismatch` | App corriendo desde `file://` o URL no registrada | Registra la URL exacta en *Orígenes de JavaScript autorizados* |
-| `Error 403: org_internal` | Pantalla de consentimiento en modo "Interno" (proyecto de cuenta Workspace) | Crea el proyecto desde una cuenta personal con consentimiento "Externo" |
-| `Error 403: access_denied` | El usuario no está en la lista de prueba | Agrega el correo en *Usuarios de prueba* de la pantalla de consentimiento |
+| `Error 400: redirect_uri_mismatch` | URL no registrada o corriendo desde `file://` | Registra la URL exacta en *Orígenes de JavaScript autorizados* |
+| `Error 403: org_internal` | Consentimiento en modo "Interno" (cuenta Workspace) | Crea el proyecto desde una cuenta personal con consentimiento "Externo" |
+| `Error 403: access_denied` | Usuario fuera de la lista de prueba | Agrega el correo en *Usuarios de prueba* |
 | Los datos desaparecieron | Caché de Safari borrado | Restaura desde Drive o JSON: *Ajustes → Importar respaldo* |
 | Drive no sincroniza | Token expirado | *Ajustes →* toca la fila de Drive → re-autoriza |
 | La app pide onboarding de nuevo | `localStorage` purgado | Importa el último respaldo |
 
----
-
-## Modelo de datos del respaldo
-
-El JSON exportado/importado es un objeto plano `{ clave: valorString }` con todas las claves `app_*` del `localStorage` (el **PIN se excluye** a propósito: es un bloqueo local por dispositivo). Los valores son strings JSON serializados. El restaurar reemplaza de forma **atómica** (borra lo anterior antes de escribir). Para restaurar manualmente desde la consola del navegador:
-
-```js
-const backup = { /* contenido del JSON */ };
-Object.entries(backup).forEach(([k, v]) => localStorage.setItem(k, v));
-location.reload();
-```
-
----
-
-## Tests
-
-Smoke test sin dependencias (requiere Node 18+ y Chrome/Edge):
+### Tests
 
 ```bash
 node test/smoke.mjs
 ```
 
-Verifica que el JavaScript embebido compile y que el nombre del usuario se escape correctamente (protección anti-XSS). Sale con código 0 si todo pasa, apto para CI.
+Smoke test sin dependencias (Node 18+ y Chrome/Edge): verifica que el JS embebido compile y que el nombre del usuario se escape (anti-XSS). Sale con código 0 si pasa (apto para CI).
 
-## Stack
+### Stack
 
 - **HTML + CSS + JavaScript vanilla** — cero dependencias de build
 - **Google Identity Services** (`accounts.google.com/gsi/client`) — solo para OAuth
 - **Google Drive API v3** — REST directo con `fetch`
+
+</details>
 
 ---
 
