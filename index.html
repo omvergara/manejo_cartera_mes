@@ -134,6 +134,8 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .tlmes{font-size:13px;font-weight:500}
 .tlsub{font-size:11px;color:var(--t3)}
 .tlturno{font-size:12px;font-weight:600;color:var(--ind)}
+.cob-tabs{display:flex;gap:8px;padding:12px 16px 0}
+.cob-bdg{display:inline-flex;align-items:center;justify-content:center;min-width:18px;height:18px;padding:0 5px;margin-left:6px;background:var(--green);color:#fff;border-radius:9px;font-size:11px;font-weight:700}
 .mwrap{background:var(--card);border-radius:16px;border:0.5px solid var(--bdr);overflow:hidden;margin-bottom:70px}
 .mtop{padding:14px 14px 10px;border-bottom:0.5px solid var(--bdr);display:flex;justify-content:space-between;align-items:center}
 .mrcbtn{background:none;border:0.5px solid var(--bdr);border-radius:8px;padding:5px 10px;font-size:12px;cursor:pointer;color:var(--t2)}
@@ -357,7 +359,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 <nav class="bnav">
   <button class="nb on" onclick="goTo('inicio')" id="nav-inicio"><span class="ni">🏠</span><span>Inicio</span></button>
   <button class="nb" onclick="goTo('gastos')" id="nav-gastos"><span class="ni">💸</span><span>Gastos</span><span class="nbdg" id="bdg-g"></span></button>
-  <button class="nb" onclick="goTo('cadena')" id="nav-cadena"><span class="ni">🔗</span><span>Cadena</span><span class="nbdg" id="bdg-c"></span></button>
+  <button class="nb" onclick="goTo('cadena')" id="nav-cadena"><span class="ni">🤝</span><span>Cobros</span><span class="nbdg" id="bdg-c"></span></button>
   <button class="nb" onclick="goTo('mercado')" id="nav-mercado"><span class="ni">🛒</span><span>Mercado</span><span class="nbdg" id="bdg-m"></span></button>
   <button class="nb" id="nav-mas"><span class="ni">⚙️</span><span>Ajustes</span></button>
 </nav>
@@ -407,6 +409,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
       <option value="Trabajo adicional">💼 Trabajo adicional</option>
       <option value="Prima">🎁 Prima</option>
       <option value="Bono empresa">🏢 Bono empresa</option>
+      <option value="Préstamos recibido">🤝 Préstamos recibido</option>
       <option value="Obsequio">🎉 Obsequio</option>
       <option value="Otros">📦 Otros</option>
     </select>
@@ -416,6 +419,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 
 <div class="overlay" id="ov-mrc"><div class="modal"><div class="mttl">🛒 Guardar mercado en gastos</div><div class="msub">Total de lo seleccionado: <b id="mrc-tot-modal"></b></div><label style="margin-bottom:8px">¿Cómo lo pagas?</label><div class="toggle-row"><button type="button" class="tgl-opt on" id="mrt-ef" onclick="mrcSetTipo('efectivo')">💵 Efectivo</button><button type="button" class="tgl-opt" id="mrt-tc" onclick="mrcSetTipo('tarjeta')">💳 Tarjeta</button></div><div id="mrc-tcid-wrap" style="display:none"><label>¿Cuál tarjeta?</label><select id="mrc-tcid"></select></div><div class="mbtns"><button class="bcancel" onclick="closeOv('ov-mrc')">Cancelar</button><button class="bsave" onclick="saveMrcGasto()" style="background:var(--green)">Guardar en gastos</button></div></div></div>
 <div class="overlay" id="ov-cc"><div class="modal"><div class="mttl">⚙️ Configurar cadenas</div><div class="msub">Una o varias cadenas. Cada una: pago mensual o quincenal, varios puestos y splits configurables.</div><div id="cc-body"></div></div></div>
+<div class="overlay" id="ov-pr"><div class="modal"><div class="mttl">🤝 Préstamos a familia</div><div class="msub">Dinero que TÚ prestas. Hasta 5 préstamos; define cuotas e interés opcional. Cada cuota pagada entra como ingreso "Préstamos recibido".</div><div id="pr-body"></div></div></div>
 <div class="overlay" id="ov-import"><div class="modal"><div class="mttl">📥 Importar respaldo</div><div class="msub">Selecciona el archivo o pega el JSON. Reemplaza los datos actuales.</div><input type="file" id="import-file" accept=".json" style="margin-bottom:10px" onchange="importFromFile(event)"><label>O pega el JSON aquí</label><textarea id="import-txt" style="height:110px;resize:none;font-size:13px" placeholder='{"app_cfg":...}'></textarea><div class="mbtns"><button class="bcancel" onclick="closeOv('ov-import')">Cancelar</button><button class="bsave" onclick="doImport()">Importar</button></div></div></div>
 <div class="overlay" id="ov-drive"><div class="modal"><div class="mttl">☁️ Conectar Google Drive</div><div class="msub">Configura una sola vez. Después sincroniza solo.</div><div style="background:var(--ibg);border-radius:12px;padding:14px;margin-bottom:12px"><div style="font-size:13px;color:var(--it);line-height:1.8"><b>1.</b> <a href="https://console.cloud.google.com" target="_blank" style="color:var(--blue)">console.cloud.google.com</a><br><b>2.</b> Crea proyecto → habilita Google Drive API<br><b>3.</b> Pantalla OAuth → Externo → agrega tu correo<br><b>4.</b> Credenciales → ID cliente OAuth → App web<br><b>5.</b> Orígenes autorizados: URL exacta de la app<br><b>6.</b> Copia el Client ID abajo</div></div><label>Client ID</label><input type="text" id="drive-cid" placeholder="xxxx.apps.googleusercontent.com"><button class="bgreen" onclick="connectDrive()">Conectar y autorizar</button><div class="mbtns" style="margin-top:8px"><button class="bcancel" onclick="closeOv('ov-drive')" style="grid-column:span 2">Cerrar</button></div></div></div>
 <div class="overlay" id="ov-tccfg"><div class="modal"><div class="mttl">💳 Tarjeta / deuda</div><div class="msub">Configúrala una vez; los gastos con tarjeta la actualizan solos.</div><div id="tccfg-body"></div><div class="mbtns" style="margin-top:14px"><button class="bcancel" onclick="closeOv('ov-tccfg')" style="grid-column:span 2">Cerrar</button></div></div></div>
@@ -504,6 +508,9 @@ function infoNomina(){
 function keyInc(y,m){return`${PFX}inc_${y}_${m}`;}
 function gInc(){const r=localStorage.getItem(keyInc(curY,curM));return r?JSON.parse(r):[];}
 function sInc(d){safeSet(keyInc(curY,curM),d);autoSync();}
+// Ingresos de un mes ARBITRARIO (no el visible). Lo usan los préstamos para registrar/quitar la cuota en su mes.
+function gIncOf(y,m){const r=localStorage.getItem(keyInc(y,m));return r?JSON.parse(r):[];}
+function sIncOf(y,m,d){safeSet(keyInc(y,m),d);autoSync();}
 function totalIngresos(){return gInc().reduce((s,i)=>s+i.monto,0);}
 
 let editIngId=null;
@@ -601,6 +608,33 @@ function migrarCadena(raw){
 }
 function getCadenas(){const raw=gCcfgRaw();if(!raw)return[];if(raw.v>=2)return raw.cadenas||[];const mig=migrarCadena(raw);safeSet(PFX+'ccfg',mig);return mig.cadenas;}
 function setCadenas(cadenas){safeSet(PFX+'ccfg',{v:2,cadenas});autoSync();}
+// ── PRÉSTAMOS (dinero que YO presto a familia/amigos) ─────────────
+// app_prestamos = [{id,persona,capital,meses,interes,cuotas:{ '<n>':{paid,y,m,incId,monto} }}]
+// interes = % MENSUAL opcional. Cuota derivada (no se congela). Máx 5. Cada cuota pagada → ingreso extra "Préstamos recibido".
+function gPrestamos(){const r=localStorage.getItem(PFX+'prestamos');if(r){try{return JSON.parse(r);}catch(e){}}return [];}
+function sPrestamos(a){safeSet(PFX+'prestamos',a);autoSync();}
+function cuotaPrestamo(capital,meses,interes){capital=+capital||0;meses=+meses||0;if(meses<=0)return 0;const i=(+interes||0)/100;if(i<=0)return capital/meses;return capital*i/(1-Math.pow(1+i,-meses));}
+function prestamoCuotasPagadas(p){return Object.values((p&&p.cuotas)||{}).filter(c=>c&&c.paid).length;}
+function prestamoSaldo(p){const cuota=cuotaPrestamo(p.capital,p.meses,p.interes);return Math.max(0,cuota*((+p.meses||0)-prestamoCuotasPagadas(p)));}
+function prestamoTotalPorCobrar(){return gPrestamos().reduce((s,p)=>s+prestamoSaldo(p),0);}
+// Quita los ingresos extra generados por las cuotas pagadas de un préstamo (al eliminarlo o reducir sus meses).
+function removePrestamoIngresos(p){if(!p||!p.cuotas)return;Object.values(p.cuotas).forEach(c=>{if(c&&c.incId){const inc=gIncOf(c.y,c.m).filter(x=>x.id!==c.incId);sIncOf(c.y,c.m,inc);}});}
+// Chulear/des-chulear una cuota. Al marcarla: crea ingreso "Préstamos recibido" en el mes visible. Al desmarcar: lo quita de su mes.
+function tCuotaPrestamo(pid,n){
+  const ps=gPrestamos();const p=ps.find(x=>x.id===pid);if(!p)return;
+  if(!p.cuotas)p.cuotas={};
+  const cur=p.cuotas[n];const cuotaVal=Math.round(cuotaPrestamo(p.capital,p.meses,p.interes));
+  if(cur&&cur.paid){
+    if(cur.incId){const inc=gIncOf(cur.y,cur.m).filter(x=>x.id!==cur.incId);sIncOf(cur.y,cur.m,inc);}
+    delete p.cuotas[n];
+  } else {
+    const incId='inc_'+Date.now()+'_'+n;const inc=gIncOf(curY,curM);
+    inc.push({id:incId,desc:`Cuota ${n}/${p.meses} · ${(p.persona||'Préstamo')}`,monto:cuotaVal,cat:'Préstamos recibido'});
+    sIncOf(curY,curM,inc);
+    p.cuotas[n]={paid:true,y:curY,m:curM,incId,monto:cuotaVal};
+  }
+  sPrestamos(ps);renderAll();
+}
 function cadDuracion(c){return Math.max(1,Math.ceil((+c.puestosGrupo||0)/(+c.salenPorPeriodo||2)));}
 function cadIdxMes(c,y,m){return (y-c.anioInicio)*12+(m-c.mesInicio)+1;}
 function cadPozo(c,p){return (p.montoPozo>0?p.montoPozo:(+c.valorCuota||0)*(+c.puestosGrupo||0))*(+p.miSplit||1);}
@@ -865,9 +899,22 @@ function tCadena(key){const rows=getCPagos();const it=rows.find(x=>x.key===key);
 // Pozos (cobros) que caen en el mes (y,m): cuando el índice de mes de la cadena coincide con el turno de una posición.
 function cobrosMes(y,m){const list=[];getCadenas().forEach(c=>{const idx=cadIdxMes(c,y,m);if(idx<1||idx>cadDuracion(c))return;(c.posiciones||[]).forEach(p=>{if((+p.turnoMes||0)===idx)list.push({cadId:c.id,nombre:c.nombre,monto:cadPozo(c,p),compartido:p.tipo==='compartido'});});});return list;}
 
+// El módulo "Cobros" agrupa dos funciones: la cadena de ahorro y los préstamos a familia.
+let _cobTab='cadena';
+function setCobTab(t){_cobTab=t;rCadena();}
 function rCadena(){
+  const cuotasPend=gPrestamos().reduce((s,p)=>s+Math.max(0,(+p.meses||0)-prestamoCuotasPagadas(p)),0);
+  const prBdg=cuotasPend>0?`<span class="cob-bdg">${cuotasPend}</span>`:'';
+  const tabs=`<div class="cob-tabs">
+    <button class="tgl-opt ${_cobTab==='cadena'?'on':''}" style="flex:1" onclick="setCobTab('cadena')">🔗 Cadena</button>
+    <button class="tgl-opt ${_cobTab==='prestamos'?'on':''}" style="flex:1" onclick="setCobTab('prestamos')">🤝 Préstamos${prBdg}</button></div>`;
+  const body=_cobTab==='prestamos'?prestBody():cadenaBody();
+  document.getElementById('s-cadena').innerHTML=rHdr('Cobros',true)+tabs+`<div class="content">${body}</div>`;
+}
+// ── Pestaña CADENA ──
+function cadenaBody(){
   const cadenas=getCadenas();const rows=getCPagos();
-  if(!cadenas.length){document.getElementById('s-cadena').innerHTML=rHdr('Cadena',false)+`<div class="content"><div class="tip info"><span class="ti">🔗</span><div class="tb">No tienes ninguna cadena configurada. Puedes tener una o varias, con uno o varios puestos, pago mensual o quincenal.</div></div><div style="text-align:center;margin-top:14px"><button class="bfull" style="max-width:300px" onclick="openCadConf()">⚙️ Configurar cadena</button></div></div>`;return;}
+  if(!cadenas.length){return `<div class="tip info"><span class="ti">🔗</span><div class="tb">No tienes ninguna cadena configurada. Puedes tener una o varias, con uno o varios puestos, pago mensual o quincenal.</div></div><div style="text-align:center;margin-top:14px"><button class="bfull" style="max-width:300px" onclick="openCadConf()">⚙️ Configurar cadena</button></div>`;}
   const msPrev=curM===0?MNS[11]:MNS[curM-1];const cobros=cobrosMes(curY,curM);let html='';
   cadenas.forEach(c=>{
     const dias=(c.frecuencia==='mensual')?[c.dias[0]]:c.dias;
@@ -881,11 +928,71 @@ function rCadena(){
     const frecLbl=c.frecuencia==='mensual'?`Cobro día ${dias[0]}`:`Cobros días ${dias.join(' y ')}`;
     html+=`<div class="list" style="margin-bottom:12px"><div class="cdhdr"><div style="display:flex;justify-content:space-between;align-items:flex-start"><div><div class="cdttl">🔗 ${esc(c.nombre)} · ${c.puestosGrupo} puestos</div><div class="cdsub">${frecLbl} • Pagas el ${c.diaPago} de ${msPrev} para cubrir ${MNS[curM]}</div></div><button class="cfg-btn" onclick="openCadConf()">⚙️</button></div><div style="margin-top:10px"><div class="pbg"><div class="pfill" style="width:${pct}%;background:var(--ind)"></div></div><div class="prw"><span class="plbl">${nP}/${cRows.length} aportes · ${fmt(tuT)}/mes</span><span class="plbl">${pct}%</span></div></div></div>${pRows}</div>${pozoCard}`;
     const tl=[];for(let i=0;i<dur;i++){let mm=c.mesInicio+i,yy=c.anioInicio;while(mm>11){mm-=12;yy++;}const turnos=(c.posiciones||[]).filter(p=>(+p.turnoMes||0)===i+1);tl.push({mes:MNS[mm],anio:yy,idx:i+1,isCur:mm===curM&&yy===curY,isPast:(yy<curY)||(yy===curY&&mm<curM),turnos});}
-    const tlRows=tl.map(t=>`<div class="tlrow"><div class="tldot ${t.isPast?'done':t.isCur?'cur':'fut'}"></div><div class="tlinf"><div class="tlmes">${t.mes} ${t.anio}${t.turnos.length?' 🏆':''}</div><div class="tlsub">Mes ${t.idx}${t.isCur?' • Actual':t.isPast?' • Pasado':''}</div></div>${t.turnos.length?`<div class="tlturno">Tu turno</div>`:`<div style="font-size:12px;color:var(--t3)">${fmt((+c.valorCuota||0)*(c.frecuencia==='mensual'?1:2))}</div>`}</div>`).join('');
+    // Timeline: muestra CADA turno del mes (propio y/o compartido) con su pozo, no un solo "Tu turno" genérico.
+    const tlRows=tl.map(t=>{
+      const turnoHtml=t.turnos.length
+        ?`<div style="display:flex;flex-direction:column;gap:4px;align-items:flex-end">${t.turnos.map(p=>`<div class="tlturno">${p.tipo==='compartido'?'🤝':'🏆'} ${fmt(cadPozo(c,p))}</div>`).join('')}</div>`
+        :`<div style="font-size:12px;color:var(--t3)">${fmt((+c.valorCuota||0)*(c.frecuencia==='mensual'?1:2))}</div>`;
+      return`<div class="tlrow"><div class="tldot ${t.isPast?'done':t.isCur?'cur':'fut'}"></div><div class="tlinf"><div class="tlmes">${t.mes} ${t.anio}${t.turnos.length?' 🏆':''}</div><div class="tlsub">Mes ${t.idx}${t.isCur?' • Actual':t.isPast?' • Pasado':''}</div></div>${turnoHtml}</div>`;
+    }).join('');
     html+=`<div class="shdr"><span class="sttl">📅 ${esc(c.nombre)} — timeline</span></div><div class="list" style="margin-bottom:16px">${tlRows}</div>`;
   });
   html+=`<div style="text-align:center;margin-bottom:10px"><button class="bcancel" style="display:inline-block;width:auto;padding:10px 18px" onclick="openCadConf()">⚙️ Configurar cadenas</button></div>`;
-  document.getElementById('s-cadena').innerHTML=rHdr('Cadena',true)+`<div class="content">${html}</div>`;
+  return html;
+}
+// ── Pestaña PRÉSTAMOS ──
+function prestBody(){
+  const ps=gPrestamos();
+  if(!ps.length){return `<div class="tip info"><span class="ti">🤝</span><div class="tb">Controla el dinero que prestas a tu familia. Configura hasta 5 préstamos, define cuántas cuotas (con interés opcional) y chulea cada pago. Cada cuota pagada entra como ingreso extra <b>"Préstamos recibido"</b> del mes.</div></div><div style="text-align:center;margin-top:14px"><button class="bfull" style="max-width:300px" onclick="openPrestConf()">⚙️ Configurar préstamo</button></div>`;}
+  let html='';let totPorCobrar=0;
+  ps.forEach(p=>{
+    const cuota=Math.round(cuotaPrestamo(p.capital,p.meses,p.interes));
+    const pagadas=prestamoCuotasPagadas(p);const pct=p.meses?Math.round(pagadas/p.meses*100):0;
+    const saldo=Math.round(prestamoSaldo(p));totPorCobrar+=saldo;
+    const rows=[];
+    for(let n=1;n<=(+p.meses||0);n++){
+      const c=(p.cuotas||{})[n];const paid=!!(c&&c.paid);
+      const sub=(paid&&c)?`Recibida · ${MNS[c.m].slice(0,3)} ${c.y}`:'Pendiente';
+      rows.push(`<div class="pr"><div class="pfecha"><div class="pdia">${n}</div><div class="pmes">cuota</div></div><div class="pinf"><div class="pdesc">Cuota ${n} de ${p.meses}</div><div class="pdet">${sub}</div></div><div class="pamt ${paid?'done':''}">${fmt(cuota)}</div><button class="pchk ${paid?'on':''}" onclick="tCuotaPrestamo('${p.id}',${n})"></button></div>`);
+    }
+    html+=`<div class="list" style="margin-bottom:12px"><div class="cdhdr"><div style="display:flex;justify-content:space-between;align-items:flex-start"><div><div class="cdttl">🤝 ${esc(p.persona||'Préstamo')}</div><div class="cdsub">${fmt(p.capital)} en ${p.meses} cuotas${(+p.interes>0)?` · interés ${p.interes}%/mes`:' · sin interés'}</div></div><button class="cfg-btn" onclick="openPrestConf()">⚙️</button></div><div style="margin-top:10px"><div class="pbg"><div class="pfill" style="width:${pct}%;background:var(--green)"></div></div><div class="prw"><span class="plbl">${pagadas}/${p.meses} cuotas · falta ${fmt(saldo)}</span><span class="plbl">${pct}%</span></div></div></div>${rows.join('')}</div>`;
+  });
+  const resumen=`<div class="tip gold"><span class="ti">💰</span><div class="tb">Te deben en total: <b>${fmt(totPorCobrar)}</b> en cuotas por cobrar.</div></div>`;
+  html+=`<div style="text-align:center;margin:6px 0 10px"><button class="bcancel" style="display:inline-block;width:auto;padding:10px 18px" onclick="openPrestConf()">⚙️ Configurar préstamos</button></div>`;
+  return resumen+html;
+}
+// ── CONFIG DE PRÉSTAMOS (editor dinámico, máx 5) ──
+let _prEdit=null;
+function nuevoPrestamo(){return{id:'pr_'+Date.now()+Math.floor(Math.random()*1000),persona:'',capital:0,meses:6,interes:0,cuotas:{}};}
+function openPrestConf(){const ps=gPrestamos();_prEdit={list:ps.length?JSON.parse(JSON.stringify(ps)):[nuevoPrestamo()],sel:0};prRender();openOv('ov-pr');}
+function prRender(){
+  const e=_prEdit;if(!e)return;const p=e.list[e.sel];const body=document.getElementById('pr-body');if(!body)return;
+  const tabs=e.list.map((x,i)=>`<button class="mchip ${i===e.sel?'on':''}" onclick="prSel(${i})">${esc(x.persona||'Préstamo '+(i+1))}</button>`).join('')+(e.list.length<5?`<button class="mchip" onclick="prAdd()">＋ Nuevo</button>`:'');
+  const cuota=cuotaPrestamo(p.capital,p.meses,p.interes);const total=cuota*(+p.meses||0);const pagadas=prestamoCuotasPagadas(p);
+  body.innerHTML=`<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px">${tabs}</div>
+    <label>¿A quién le prestaste?</label><input type="text" value="${esc(p.persona||'')}" placeholder="Ej: Hermano" onchange="prField('persona',this.value)">
+    <label>Monto prestado ($)</label><input type="number" value="${p.capital||''}" inputmode="numeric" placeholder="1000000" onchange="prField('capital',this.value)">
+    <div style="display:flex;gap:10px"><div style="flex:1"><label>N° de cuotas (meses)</label><input type="number" value="${p.meses||''}" inputmode="numeric" onchange="prField('meses',this.value)"></div><div style="flex:1"><label>Interés % mensual (opcional)</label><input type="number" step="0.1" value="${p.interes||''}" inputmode="decimal" placeholder="0" onchange="prField('interes',this.value)"></div></div>
+    <div class="tip info" style="margin-top:10px"><span class="ti">🧮</span><div class="tb">Cuota mensual: <b>${fmt(cuota)}</b>${(+p.interes>0)?` · Total a recibir: <b>${fmt(total)}</b> (interés ${fmt(total-(+p.capital||0))})`:''}</div></div>
+    ${pagadas>0?`<div style="font-size:12px;color:var(--t2);margin-top:6px">⚠️ Tiene ${pagadas} cuota(s) ya registrada(s) como ingreso. Si reduces las cuotas por debajo de ese número, se quitarán esos ingresos.</div>`:''}
+    <button class="bfull" style="margin-top:12px" onclick="savePrestConf()">Guardar</button>
+    <div class="mbtns" style="margin-top:8px"><button class="bcancel" onclick="prDel()" style="color:var(--red)">Eliminar préstamo</button><button class="bcancel" onclick="closeOv('ov-pr')">Cerrar</button></div>`;
+}
+function prField(f,v){const p=_prEdit.list[_prEdit.sel];if(f==='persona'){p.persona=v;}else if(f==='interes'){p.interes=Math.max(0,parseFloat(v)||0);prRender();}else{p[f]=Math.max(0,parseInt(v)||0);prRender();}}
+function prSel(i){_prEdit.sel=i;prRender();}
+function prAdd(){if(_prEdit.list.length>=5)return;_prEdit.list.push(nuevoPrestamo());_prEdit.sel=_prEdit.list.length-1;prRender();}
+// Limpia un préstamo para guardar; poda cuotas fuera de rango (meses reducidos) y borra sus ingresos.
+function cleanPrestamo(p){const meses=Math.max(0,+p.meses||0);const cuotas={};Object.keys(p.cuotas||{}).forEach(n=>{if(+n<=meses&&+n>=1){cuotas[n]=p.cuotas[n];}else{const c=p.cuotas[n];if(c&&c.incId){const inc=gIncOf(c.y,c.m).filter(x=>x.id!==c.incId);sIncOf(c.y,c.m,inc);}}});return{id:p.id,persona:(p.persona||'').trim(),capital:+p.capital||0,meses,interes:+p.interes||0,cuotas};}
+function savePrestConf(){sPrestamos(_prEdit.list.map(cleanPrestamo));closeOv('ov-pr');renderAll();}
+function prDel(){
+  const e=_prEdit;const victim=e.list[e.sel];
+  showConfirm('¿Eliminar este préstamo?','Se quitará junto con los ingresos de sus cuotas ya registradas.',()=>{
+    removePrestamoIngresos(victim);
+    e.list.splice(e.sel,1);e.sel=0;
+    sPrestamos(e.list.map(cleanPrestamo));
+    if(!e.list.length){closeOv('ov-pr');}else{prRender();}
+    renderAll();
+  });
 }
 
 // ── CONFIG DE CADENA (editor dinámico) ────────────────────
