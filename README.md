@@ -37,6 +37,12 @@ Está pensada para Colombia: maneja **quincenas y nómina**, la **prima** de jun
 
 ---
 
+## La primera vez que la abres
+
+Un **asistente de 6 pasos** te lleva de la mano: tu perfil y salario → cuándo cubre tu pago y desde qué mes vas a llevar la cartera → tus gastos fijos → tu tarjeta de crédito → tu meta de ahorro → un resumen de lo que quedó. Cualquier paso (menos el primero) lo puedes saltar con **Después**, y lo que dejes pendiente te espera en la tarjeta **“🚀 Termina de configurar tu cartera”** en Inicio: se va marcando sola, cada línea te abre lo que falta, y si algo no te aplica (por ejemplo, no estás en ninguna cadena) lo quitas con la ✕. Cuando completas todo, la tarjeta desaparece.
+
+---
+
 ## Las pantallas, una por una
 
 La app tiene 5 botones abajo: **Inicio · Gastos · Cobros · Mercado · Ajustes.**
@@ -207,13 +213,18 @@ El access token dura ~1 hora; la app funciona 100 % local sin token (solo se pau
 | Drive no sincroniza | Token expirado | *Ajustes →* toca la fila de Drive → re-autoriza |
 | La app pide onboarding de nuevo | `localStorage` purgado | Importa el último respaldo |
 
+### Configuración guiada
+Asistente de 6 pasos en el overlay `#onboarding` (`onbIniciar/onbPintar/onbIr/onbGuardarPaso`): el paso 1 guarda el perfil al avanzar, así abandonarlo a medias no deja un estado roto. La tarjeta de pendientes de Inicio (`ckCard()`) deriva su estado de los datos reales y guarda en `app_onb` solo `{hide, skip}`.
+
 ### Tests
 
 ```bash
-node test/smoke.mjs
+node test/smoke.mjs        # compila + anti-XSS (código 0/1, apto para CI)
+node test/funcional.mjs    # escenario sembrado: pantallas, modales, swipe, modos, cadena↔caja
+node test/onboarding.mjs   # usuario nuevo: asistente de 6 pasos + tarjeta de pendientes
 ```
 
-Smoke test sin dependencias (Node 18+ y Chrome/Edge): verifica que el JS embebido compile y que el nombre del usuario se escape (anti-XSS). Sale con código 0 si pasa (apto para CI).
+Sin dependencias (Node 18+ y Chrome/Edge), corren en headless sobre el `index.html` real. Los dos últimos imprimen `OUT` con aserciones legibles y `ERRS`, que **debe quedar en 0**.
 
 ### Stack
 

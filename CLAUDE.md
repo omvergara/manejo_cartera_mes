@@ -66,6 +66,7 @@ app_tc               (LEGACY) tarjeta única antigua — se migra a app_tcs
 app_metas            metas de ahorro v2: [{id,nombre,icono,total,meta,plazoMeses?}] (migra de app_meta {total,metaCasa}). Se configuran en modal (ov-metas); el total sube SOLO desde gastos tipo ahorro
 app_sav_{Y}_{M}      (LEGACY) contador viejo de ahorro/mes — ya no se usa; savMes() se calcula de los gastos ahorro pagados del mes
 app_prima_{Y}_{M}    (LEGACY) ya no se escribe — el planificador de prima se eliminó; la prima se registra como Ingreso extra cat 'Prima'
+app_onb              estado de la tarjeta de pendientes: {hide:bool, skip:[ids]} (ver ckCard/ckItems)
 app_pin              hash del PIN (sha256:… ó plain:…). EXCLUIDO del backup (getAllData lo omite)
 app_drive_cid        Client ID OAuth
 app_drive_fid        file ID del respaldo en Drive
@@ -75,6 +76,13 @@ cartera_prerestore   (sin prefijo app_) snapshot de seguridad antes de un restor
 **Convención de mes:** el mes mostrado = el mes que el dinero CUBRE, no el que se paga. Lo que se paga el día de nómina (p.ej. 25) cubre el mes siguiente; se registra bajo ese mes. La cadena se paga el `diaPago` del mes anterior al que cubre.
 
 **Escritura segura:** usar `safeSet(k,v)` (captura QuotaExceededError) en vez de `localStorage.setItem` directo; los setters (`sD/sCfgApp/sM/sTc/sMeta/sInc`) ya lo hacen y llaman `autoSync()`. `replaceAllData(obj)` hace restore ATÓMICO (borra claves app_ excepto el PIN, valida y escribe) — usado por import y restore de Drive.
+
+## Configuración guiada (usuario nuevo)
+- **Asistente de 6 pasos** en el overlay `#onboarding` (perfil → modo de mes + mes de inicio → gastos fijos → tarjeta → meta → resumen). Pasos estáticos `#onb-s1..s6` que se muestran/ocultan; lógica en `onbIniciar/onbPintar/onbIr/onbGuardarPaso`.
+  - El paso 1 **guarda el perfil al avanzar**: si el usuario abandona a medias no queda un estado roto (y `checkOnboarding()` ya no vuelve a abrirlo).
+  - "Después" (`onbIr(1,true)`) salta el paso sin guardar. El paso 1 no se puede saltar (salario obligatorio).
+  - La plantilla de gastos fijos del paso 3 es `DG` (única fuente). Por eso `seedGastos()` devuelve **vacío** cuando no hay ningún mes previo: si no, el usuario nuevo arrancaba con 5 filas en $0.
+- **Tarjeta "Termina de configurar"** en Inicio (`ckCard()/ckItems()`): detecta sola lo que falta, cada fila abre su modal, `✕` marca "no me aplica" y desaparece al completarse. Estado en `app_onb` = `{hide, skip:[ids]}`.
 
 ## Reglas de oro
 1. **NUNCA** cambiar el prefijo `app_` ni renombrar claves existentes — rompería los datos de usuarios activos. Si una migración es inevitable, escribir código que lea la clave vieja y escriba la nueva.
@@ -111,8 +119,13 @@ cartera_prerestore   (sin prefijo app_) snapshot de seguridad antes de un restor
 4. Exportar JSON → importarlo → datos intactos
 5. Verificar que no haya errores en consola
 
-## Smoke test automatizado
-`node test/smoke.mjs` — verifica que el JS embebido compile y que el nombre del usuario se escape (anti-XSS). Requiere Node 18+ y Chrome/Edge instalado. Sale con código 0 si pasa (apto para CI).
+## Tests automatizados
+Requieren Node 18+ y Chrome/Edge instalado. Los tres corren en headless sobre el `index.html` real.
+- `node test/smoke.mjs` — el JS embebido compila y el nombre del usuario se escapa (anti-XSS). Sale con código 0/1 (apto para CI).
+- `node test/funcional.mjs` — siembra un escenario (cartera desde junio 2026, cadena, préstamos, hormigas) y ejercita pantallas, modales, navegación, swipe, modos de mes y los derivados de la cadena. Imprime `OUT` (aserciones legibles) y `ERRS`: **ERRS debe ser 0**.
+- `node test/onboarding.mjs` — arranca con localStorage vacío y recorre el asistente de 6 pasos + la tarjeta de pendientes. Mismo formato: `ERRS` debe ser 0.
+
+⚠️ Al escribir estos tests, el harness va dentro de un template literal de JS: **no uses expresiones regulares con `\`** (`\d`, `\w`, `\/` pierden la barra al interpolarse). Usa `new RegExp('...')` con clases explícitas (`[0-9]`, `[A-Za-z]`) o `.includes()`.
 
 ## Deploy
 `git push` a main → Cloudflare Pages redespliega (~30s). No hay pipeline de build.

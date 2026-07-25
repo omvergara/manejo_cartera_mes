@@ -251,6 +251,27 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .onb-wrap input{width:100%;padding:13px;border:0.5px solid var(--bdr);border-radius:12px;font-size:16px;color:var(--t1);background:var(--card)}
 .onb-wrap input:focus{outline:none;border-color:var(--blue)}
 .onb-wrap .tgl-opt{font-size:15px;padding:12px}
+.onb-wrap select{width:100%;padding:13px;border:0.5px solid var(--bdr);border-radius:12px;font-size:16px;color:var(--t1);background:var(--card)}
+.onb-bar{height:6px;background:var(--gray);border-radius:3px;overflow:hidden;margin-bottom:8px}
+.onb-bar-fill{height:6px;background:var(--ind);border-radius:3px;transition:width .25s ease-out}
+.onb-paso{font-size:11px;color:var(--t3);text-align:center;margin-bottom:20px;font-weight:600}
+.onb-nav{display:flex;gap:8px;align-items:center;margin-top:26px}
+.onb-nav button{border:none;border-radius:12px;padding:14px 10px;font-size:15px;font-weight:600;cursor:pointer}
+.onb-nav .onb-b-atras{background:var(--gray);color:var(--t2);flex:0 0 84px}
+.onb-nav .onb-b-skip{background:none;color:var(--t2);font-weight:500;flex:0 0 auto;font-size:13px}
+.onb-nav .onb-b-next{background:var(--ind);color:#fff;flex:1}
+/* filas de gastos fijos y de pendientes */
+.onb-gf{display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:0.5px solid var(--bdr)}
+.onb-gf-ico{font-size:20px;width:26px;text-align:center}
+.onb-gf-nm{flex:1;font-size:14px}
+.onb-gf input{width:112px;padding:9px;font-size:14px;text-align:right}
+.ck-card{background:var(--card);border-radius:16px;padding:14px;border:0.5px solid var(--bdr);margin-bottom:10px}
+.ck-row{display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:0.5px solid var(--bdr);cursor:pointer}
+.ck-row:last-of-type{border-bottom:none}
+.ck-box{font-size:16px;width:20px;text-align:center}
+.ck-nm{flex:1;font-size:14px}
+.ck-nm.done{color:var(--t3);text-decoration:line-through}
+.ck-x{background:none;border:none;color:var(--t3);font-size:15px;cursor:pointer;padding:2px 6px}
 /* resumen ingresos */
 .ing-resumen{background:linear-gradient(135deg,#2e7d32,#388e3c);border-radius:16px;padding:14px 16px;margin:10px 16px 0;color:#fff;display:flex;justify-content:space-between;align-items:center}
 .ing-lbl{font-size:11px;opacity:.8;margin-bottom:2px}
@@ -308,6 +329,11 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 <!-- ONBOARDING -->
 <div class="onb-overlay" id="onboarding">
   <div class="onb-wrap">
+    <div class="onb-bar"><div class="onb-bar-fill" id="onb-bar" style="width:16%"></div></div>
+    <div class="onb-paso" id="onb-paso">Paso 1 de 6</div>
+
+    <!-- PASO 1 · perfil -->
+    <div class="onb-step" id="onb-s1">
     <div class="onb-emoji">👋</div>
     <div class="onb-ttl">Bienvenido a Cartera</div>
     <div class="onb-sub">Configura lo básico — todo se guarda solo en este dispositivo, nadie más ve tus datos.</div>
@@ -344,15 +370,79 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 
 
 
-    <label style="margin-bottom:8px">🗓️ ¿Qué mes cubre tu pago?</label>
-    <div class="toggle-row">
-      <button type="button" class="tgl-opt on" id="onb-m-ant" style="flex:1 1 30%;font-size:12px;padding:10px 4px" onclick="onbSetModo('anticipado')">⏭️ Anticipado</button>
-      <button type="button" class="tgl-opt" id="onb-m-cur" style="flex:1 1 30%;font-size:12px;padding:10px 4px" onclick="onbSetModo('curso')">📅 En curso</button>
-      <button type="button" class="tgl-opt" id="onb-m-ven" style="flex:1 1 30%;font-size:12px;padding:10px 4px" onclick="onbSetModo('vencido')">⏮️ Vencido</button>
-    </div>
-    <div class="tip info" style="margin-top:12px;margin-bottom:0"><span class="ti">💡</span><div class="tb" id="onb-modo-tip"></div></div>
+    </div><!-- /paso 1 -->
 
-    <button class="bfull" style="margin-top:24px" onclick="finishOnboarding()">Empezar →</button>
+    <!-- PASO 2 · cuándo cubre tu plata + desde cuándo llevas la cartera -->
+    <div class="onb-step" id="onb-s2" style="display:none">
+      <div class="onb-emoji">🗓️</div>
+      <div class="onb-ttl">¿Qué mes cubre tu pago?</div>
+      <div class="onb-sub">Así la app sabe si lo que registras en un mes se paga antes, durante o después.</div>
+      <div class="toggle-row" style="flex-wrap:wrap;gap:6px">
+        <button type="button" class="tgl-opt on" id="onb-m-ant" style="flex:1 1 30%;font-size:13px;padding:11px 4px" onclick="onbSetModo('anticipado')">⏭️ Anticipado</button>
+        <button type="button" class="tgl-opt" id="onb-m-cur" style="flex:1 1 30%;font-size:13px;padding:11px 4px" onclick="onbSetModo('curso')">📅 En curso</button>
+        <button type="button" class="tgl-opt" id="onb-m-ven" style="flex:1 1 30%;font-size:13px;padding:11px 4px" onclick="onbSetModo('vencido')">⏮️ Vencido</button>
+      </div>
+      <div class="tip info" style="margin-top:12px;margin-bottom:0"><span class="ti">💡</span><div class="tb" id="onb-modo-tip"></div></div>
+      <label style="margin-top:22px">📌 ¿Desde qué mes vas a llevar tu cartera?</label>
+      <div style="display:flex;gap:10px">
+        <div style="flex:1"><select id="onb-ini-mes"></select></div>
+        <div style="flex:1"><input type="number" id="onb-ini-anio" inputmode="numeric"></div>
+      </div>
+      <div style="font-size:12px;color:var(--t2);margin-top:8px;line-height:1.5">Los meses anteriores quedan en $0 y no aparecen: así no te salen ingresos de meses que nunca llevaste. Se cambia después en Ajustes.</div>
+    </div>
+
+    <!-- PASO 3 · gastos fijos -->
+    <div class="onb-step" id="onb-s3" style="display:none">
+      <div class="onb-emoji">🧾</div>
+      <div class="onb-ttl">Tus gastos fijos</div>
+      <div class="onb-sub">¿Qué pagas todos los meses? Pon solo los que tengas; quedan marcados como <b>recurrentes</b> y se arrastran solos cada mes.</div>
+      <div id="onb-gf-list"></div>
+      <button class="bcancel" style="width:100%;margin-top:12px" onclick="onbGfAdd()">＋ Agregar otro</button>
+    </div>
+
+    <!-- PASO 4 · tarjeta -->
+    <div class="onb-step" id="onb-s4" style="display:none">
+      <div class="onb-emoji">💳</div>
+      <div class="onb-ttl">¿Tienes tarjeta de crédito?</div>
+      <div class="onb-sub">Con esto la app te dice en cuántos meses quedas a paz y cuánto interés pagas. Si no tienes, dale <b>Después</b>.</div>
+      <label>Nombre</label><input type="text" id="onb-tc-nom" placeholder="Ej: Visa Bancolombia">
+      <label>Deuda actual ($)</label><input type="number" id="onb-tc-base" inputmode="numeric" placeholder="1500000">
+      <div style="display:flex;gap:10px">
+        <div style="flex:1"><label>Cuota mensual ($)</label><input type="number" id="onb-tc-cuota" inputmode="numeric" placeholder="300000"></div>
+        <div style="flex:1"><label>Interés % mensual</label><input type="number" step="0.1" id="onb-tc-tasa" inputmode="decimal" placeholder="2.3"></div>
+      </div>
+      <div style="font-size:12px;color:var(--t2);margin-top:10px;line-height:1.5">Después puedes agregar más tarjetas en Ajustes.</div>
+    </div>
+
+    <!-- PASO 5 · meta de ahorro -->
+    <div class="onb-step" id="onb-s5" style="display:none">
+      <div class="onb-emoji">🏦</div>
+      <div class="onb-ttl">¿Estás ahorrando para algo?</div>
+      <div class="onb-sub">Una meta (casa, viaje, emergencias). Sube sola cuando marques un gasto tipo 🏦 Ahorro hacia ella.</div>
+      <div style="display:flex;gap:10px">
+        <div style="flex:0 0 72px"><label>Icono</label><input type="text" id="onb-meta-ico" value="🏡" style="text-align:center"></div>
+        <div style="flex:1"><label>Nombre</label><input type="text" id="onb-meta-nom" placeholder="Ej: Casa"></div>
+      </div>
+      <div style="display:flex;gap:10px">
+        <div style="flex:1"><label>Objetivo ($)</label><input type="number" id="onb-meta-obj" inputmode="numeric" placeholder="20000000"></div>
+        <div style="flex:1"><label>Ya tengo ahorrado ($)</label><input type="number" id="onb-meta-hoy" inputmode="numeric" placeholder="0"></div>
+      </div>
+    </div>
+
+    <!-- PASO 6 · listo -->
+    <div class="onb-step" id="onb-s6" style="display:none">
+      <div class="onb-emoji">🎉</div>
+      <div class="onb-ttl">¡Listo, ya puedes empezar!</div>
+      <div class="onb-sub">Esto quedó configurado:</div>
+      <div id="onb-resumen"></div>
+      <div class="tip info" style="margin-top:14px"><span class="ti">🚀</span><div class="tb">Lo que falte (cadena, préstamos, PIN, respaldo en Drive) te espera en la tarjeta <b>“Termina de configurar”</b> en Inicio. Puedes hacerlo cuando quieras.</div></div>
+    </div>
+
+    <div class="onb-nav">
+      <button class="onb-b-atras" id="onb-atras" onclick="onbIr(-1)">‹ Atrás</button>
+      <button class="onb-b-skip" id="onb-skip" onclick="onbIr(1,true)">Después</button>
+      <button class="onb-b-next" id="onb-next" onclick="onbIr(1)">Siguiente ›</button>
+    </div>
     <div style="text-align:center;margin-top:16px">
       <span style="font-size:13px;color:var(--blue);cursor:pointer" onclick="document.getElementById('onboarding').classList.remove('open');openOv('ov-import')">¿Tienes un respaldo? Importar datos →</span>
     </div>
@@ -669,14 +759,15 @@ function key(y,m){return`${PFX}${y}_${m}`}
 function gD(){const r=localStorage.getItem(key(curY,curM));return r?JSON.parse(r):{gastos:seedGastos(curY,curM)};}
 // Semilla de un mes sin datos: arrastra SOLO los gastos marcados como recurrentes del mes con datos
 // más reciente (reseteados a no pagado, conservando id para que marcar/editar funcione antes de guardar).
-// Si no hay ningún mes previo con datos, usa la plantilla genérica DG (primer uso de la app).
+// Si no hay ningún mes previo con datos devuelve vacío: los gastos fijos del primer uso los pide el
+// asistente (paso 3, plantilla DG), así nadie arranca con filas en $0 que tenga que borrar.
 function seedGastos(y,m){
   for(let i=1;i<=12;i++){
     let py=y,pm=m-i;while(pm<0){pm+=12;py--;}
     const r=localStorage.getItem(key(py,pm));
     if(r){try{return (JSON.parse(r).gastos||[]).filter(g=>g.recurrente).map(g=>({...g,paid:false,_tcAmt:undefined,_tcApplied:undefined,_abonoApplied:undefined,_metaApplied:undefined}));}catch(e){return [];}}
   }
-  return DG.map(g=>({...g}));
+  return [];
 }
 function sD(d){safeSet(key(curY,curM),d);autoSync();}
 // Lectura/escritura de un mes ARBITRARIO. gDRaw NO siembra: devuelve null si el mes no existe
@@ -825,21 +916,109 @@ function onbSetTipo(t){
   document.getElementById('onb-f-mens').style.display=t==='mensual'?'':'none';
   document.getElementById('onb-f-quin').style.display=t==='quincenal'?'':'none';
 }
-function checkOnboarding(){if(!gCfgApp()){onbSetModo(_onbModo);document.getElementById('onboarding').classList.add('open');return true;}return false;}
-function finishOnboarding(){
-  const nombre=document.getElementById('onb-nombre').value.trim();
-  const neto=parseInt(document.getElementById('onb-neto').value)||0;
-  if(!neto){alert('Ingresa tu salario neto.');return;}
-  // La cartera arranca en el mes actual; se puede mover después en Ajustes → Mi perfil.
-  const _h=new Date();
-  const cfg={nombre,neto,tipoNomina:_onbTipo,modoMes:_onbModo,inicioY:_h.getFullYear(),inicioM:_h.getMonth()};
-  if(_onbTipo==='mensual'){
-    cfg.nominaDia=parseInt(document.getElementById('onb-dia').value)||25;
-  } else {
-    cfg.q1=parseInt(document.getElementById('onb-q1').value)||15;
-    cfg.q2=parseInt(document.getElementById('onb-q2').value)||30;
+function checkOnboarding(){if(!gCfgApp()){onbIniciar();return true;}return false;}
+
+// ── ASISTENTE DE CONFIGURACIÓN (6 pasos) ──────────────────
+// Paso 1 (perfil) es obligatorio y se guarda al avanzar: si el usuario abandona el asistente
+// a medias no queda en un estado roto, y lo que falte lo recuerda la tarjeta de pendientes en Inicio.
+const ONB_N=6;
+let _onbP=1;
+function onbIniciar(){
+  _onbP=1;
+  const h=new Date();
+  document.getElementById('onb-ini-mes').innerHTML=MNS.map((mn,i)=>`<option value="${i}" ${h.getMonth()===i?'selected':''}>${mn}</option>`).join('');
+  document.getElementById('onb-ini-anio').value=h.getFullYear();
+  onbSetModo(_onbModo);
+  onbGfRender();
+  onbPintar();
+  document.getElementById('onboarding').classList.add('open');
+}
+function onbPintar(){
+  for(let i=1;i<=ONB_N;i++){const el=document.getElementById('onb-s'+i);if(el)el.style.display=(i===_onbP)?'':'none';}
+  document.getElementById('onb-bar').style.width=Math.round(_onbP/ONB_N*100)+'%';
+  document.getElementById('onb-paso').textContent=`Paso ${_onbP} de ${ONB_N}`;
+  document.getElementById('onb-atras').style.visibility=(_onbP===1)?'hidden':'';
+  document.getElementById('onb-skip').style.display=(_onbP===1||_onbP===ONB_N)?'none':'';
+  document.getElementById('onb-next').textContent=(_onbP===ONB_N)?'Entrar a mi cartera →':(_onbP===1?'Empezar →':'Siguiente ›');
+  if(_onbP===ONB_N)onbResumen();
+  document.querySelector('.onb-overlay').scrollTop=0;
+}
+// Avanza/retrocede. saltar=true no guarda el paso actual (botón "Después").
+function onbIr(dir,saltar){
+  if(dir>0&&!saltar&&!onbGuardarPaso(_onbP))return;
+  if(dir>0&&_onbP===ONB_N){finishOnboarding();return;}
+  _onbP=Math.min(ONB_N,Math.max(1,_onbP+dir));
+  onbPintar();
+}
+// Guarda el paso; devuelve false si falta algo obligatorio.
+function onbGuardarPaso(p){
+  if(p===1){
+    const nombre=document.getElementById('onb-nombre').value.trim();
+    const neto=parseInt(document.getElementById('onb-neto').value)||0;
+    if(!neto){alert('Ingresa tu salario neto para continuar.');return false;}
+    const h=new Date();
+    const cfg=Object.assign({inicioY:h.getFullYear(),inicioM:h.getMonth(),modoMes:_onbModo},gCfgApp()||{},{nombre,neto,tipoNomina:_onbTipo});
+    if(_onbTipo==='mensual'){cfg.nominaDia=parseInt(document.getElementById('onb-dia').value)||25;delete cfg.q1;delete cfg.q2;}
+    else{cfg.q1=parseInt(document.getElementById('onb-q1').value)||15;cfg.q2=parseInt(document.getElementById('onb-q2').value)||30;delete cfg.nominaDia;}
+    sCfgApp(cfg);return true;
   }
-  sCfgApp(cfg);
+  if(p===2){
+    const cfg=gCfgApp()||{};cfg.modoMes=_onbModo;
+    const im=parseInt(document.getElementById('onb-ini-mes').value);const iy=parseInt(document.getElementById('onb-ini-anio').value);
+    if(Number.isInteger(im)&&iy>=2000&&iy<=2100){cfg.inicioM=im;cfg.inicioY=iy;}
+    sCfgApp(cfg);
+    const fl=navFloor();curY=fl.y;curM=fl.m;// arranca en el mes que el usuario eligió
+    return true;
+  }
+  if(p===3){
+    const d=gD();let n=0;
+    _onbGf.forEach((g,i)=>{
+      const inp=document.getElementById('onb-gf-'+i);const monto=inp?parseInt(inp.value)||0:0;
+      const nom=(g.editable?(document.getElementById('onb-gfn-'+i)||{}).value:g.name)||g.name;
+      if(monto>0&&String(nom).trim()){d.gastos.push({id:'g_'+Date.now()+'_'+(n++),name:String(nom).trim(),amount:monto,cat:g.cat,paid:false,recurrente:true});}
+    });
+    if(n)sD(d);
+    return true;
+  }
+  if(p===4){
+    const nom=document.getElementById('onb-tc-nom').value.trim();
+    const base=parseInt(document.getElementById('onb-tc-base').value)||0;
+    const cuota=parseInt(document.getElementById('onb-tc-cuota').value)||0;
+    const tasa=parseFloat(document.getElementById('onb-tc-tasa').value)||0;
+    if(nom||base>0){const a=gTcs();a.push({id:'tc'+Date.now(),nombre:nom||'Tarjeta',base,cuota,tasa});sTcs(a);}
+    return true;
+  }
+  if(p===5){
+    const nom=document.getElementById('onb-meta-nom').value.trim();
+    const obj=parseInt(document.getElementById('onb-meta-obj').value)||0;
+    const hoy=parseInt(document.getElementById('onb-meta-hoy').value)||0;
+    if(nom||obj>0){const ms=gMetas();ms.push({id:'g'+Date.now(),nombre:nom||'Mi meta',icono:document.getElementById('onb-meta-ico').value.trim()||'🐷',total:hoy,meta:obj,plazoMeses:0});sMetas(ms);}
+    return true;
+  }
+  return true;
+}
+// Paso 3: lista editable de gastos fijos. Sale de la plantilla DG (única fuente) + lo que agregue el usuario.
+let _onbGf=DG.map(g=>({name:g.name,cat:g.cat,ico:catIco(g.cat)}));
+function onbGfRender(){
+  const el=document.getElementById('onb-gf-list');if(!el)return;
+  el.innerHTML=_onbGf.map((g,i)=>`<div class="onb-gf"><span class="onb-gf-ico">${g.ico||'📦'}</span>${g.editable
+    ?`<input class="onb-gf-nm" id="onb-gfn-${i}" type="text" placeholder="¿Qué es?" value="${esc(g.name||'')}" style="flex:1;width:auto;padding:9px;font-size:14px">`
+    :`<span class="onb-gf-nm">${esc(g.name)}</span>`}<input type="number" inputmode="numeric" id="onb-gf-${i}" placeholder="$ 0"></div>`).join('');
+}
+function onbGfAdd(){_onbGf.push({name:'',cat:'Otros',ico:'📦',editable:true});onbGfRender();}
+function onbResumen(){
+  const el=document.getElementById('onb-resumen');if(!el)return;
+  const c=gCfgApp()||{};const gs=gD().gastos.filter(g=>(+g.amount||0)>0);
+  const items=[
+    ['👤','Perfil',(c.nombre?esc(c.nombre)+' · ':'')+fmt(c.neto)+(ES_QUINCENAL()?` · quincenal ${NDAY1()} y ${NDAY2()}`:` · día ${NDAY()}`)],
+    ['🗓️','Modo de mes',{anticipado:'Anticipado',curso:'En curso',vencido:'Vencido'}[MODO_MES()]+' · desde '+inicioOpLbl()],
+    ['🧾','Gastos fijos',gs.length?`${gs.length} gasto(s) · ${fmt(gs.reduce((s,g)=>s+(+g.amount||0),0))}/mes`:'ninguno todavía'],
+    ['💳','Tarjetas',gTcs().length?`${gTcs().length} · ${fmt(deudaTotal())} de deuda`:'ninguna'],
+    ['🏦','Metas',gMetas().length?gMetas().map(m=>esc(m.nombre)).join(', '):'ninguna']
+  ];
+  el.innerHTML=items.map(([i,t,v])=>`<div style="display:flex;gap:10px;padding:9px 0;border-bottom:0.5px solid var(--bdr)"><span style="font-size:17px">${i}</span><div style="flex:1"><div style="font-size:13px;font-weight:600">${t}</div><div style="font-size:12px;color:var(--t2)">${v}</div></div></div>`).join('');
+}
+function finishOnboarding(){
   document.getElementById('onboarding').classList.remove('open');
   renderAll();
 }
@@ -1013,6 +1192,48 @@ function rHdr(title,nav=true){
   return`<div class="hdr"><div class="hdr-row"><div class="app-ttl">${title}</div>${pillHtml}</div>${nav?`<div class="mnav"><button onclick="changeMonth(-1)">‹</button><span class="mlbl">${MNS[curM]} ${curY}</span><button onclick="changeMonth(1)">›</button>${!isToday()?`<button onclick="goToday()" style="background:var(--abg);color:var(--at);font-weight:600;font-size:12px;padding:8px 12px" title="Volver al mes actual">Hoy ↩</button>`:''}</div>`:''}</div>`;
 }
 
+// ── TARJETA "TERMINA DE CONFIGURAR" ───────────────────────
+// Recuerda lo que quedó pendiente del asistente. Se llena sola (detecta los datos), cada fila
+// abre su modal, se puede marcar "no me aplica" por fila y desaparece al completarse.
+function gOnb(){const r=localStorage.getItem(PFX+'onb');if(r){try{const o=JSON.parse(r);return{hide:!!o.hide,skip:o.skip||[]};}catch(e){}}return{hide:false,skip:[]};}
+function sOnb(o){safeSet(PFX+'onb',o);autoSync();}
+function onbSkipItem(id){const o=gOnb();if(o.skip.indexOf(id)<0)o.skip.push(id);sOnb(o);renderAll();}
+function onbHide(){showConfirm('¿Ocultar la lista de pendientes?','Lo que falte lo puedes configurar en Ajustes cuando quieras.',()=>{const o=gOnb();o.hide=true;sOnb(o);renderAll();},'Ocultar');}
+function hayAlgunGasto(){return mesesConDatos().some(x=>{const d=gDRaw(x.y,x.m);return d&&(d.gastos||[]).some(g=>(+g.amount||0)>0);});}
+function ckItems(){
+  const c=gCfgApp()||{};
+  return [
+    {id:'perfil',ico:'👤',nm:'Tu perfil y salario',ok:(+c.neto||0)>0,act:'openCfgModal()'},
+    {id:'inicio',ico:'📌',nm:'Desde qué mes llevas la cartera',ok:Number.isInteger(c.inicioY),act:'openCfgModal()'},
+    {id:'gastos',ico:'🧾',nm:'Tus gastos del mes',ok:hayAlgunGasto(),act:"goTo('gastos');openAdd()"},
+    {id:'tc',ico:'💳',nm:'Tarjetas de crédito',ok:gTcs().length>0,act:'openTcCfg()'},
+    {id:'metas',ico:'🏦',nm:'Metas de ahorro',ok:gMetas().length>0,act:'openMetasCfg()'},
+    {id:'cadena',ico:'🔗',nm:'Cadena / san',ok:getCadenas().length>0,act:'openCadConf()'},
+    {id:'prest',ico:'🤝',nm:'Préstamos a familia',ok:gPrestamos().length>0,act:'openPrestConf()'},
+    {id:'seg',ico:'🔒',nm:'PIN o respaldo en Drive',ok:hasPin()||!!getDriveClientId(),act:"goTo('ajustes')"}
+  ];
+}
+function ckCard(){
+  const o=gOnb();if(o.hide)return'';
+  const items=ckItems().filter(i=>o.skip.indexOf(i.id)<0);
+  const done=items.filter(i=>i.ok).length;
+  if(!items.length||done===items.length)return'';
+  const pct=Math.round(done/items.length*100);
+  const rows=items.map(i=>i.ok
+    ?`<div class="ck-row" style="cursor:default"><span class="ck-box">✅</span><span class="ck-nm done">${i.nm}</span></div>`
+    :`<div class="ck-row"><span class="ck-box">⬜</span><span class="ck-nm" onclick="${i.act}">${i.ico} ${i.nm}</span><span onclick="${i.act}" style="color:var(--t3)">›</span><button class="ck-x" onclick="onbSkipItem('${i.id}')" title="No me aplica">✕</button></div>`
+  ).join('');
+  return`<div class="ck-card">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+      <div style="font-size:14px;font-weight:700">🚀 Termina de configurar tu cartera</div>
+      <div style="font-size:12px;color:var(--t2);font-weight:600">${done}/${items.length}</div>
+    </div>
+    <div class="pbg"><div class="pfill" style="width:${pct}%;background:var(--ind)"></div></div>
+    <div style="margin-top:6px">${rows}</div>
+    <div style="text-align:center;margin-top:8px"><span onclick="onbHide()" style="font-size:12px;color:var(--t3);cursor:pointer">Ocultar por ahora</span></div>
+  </div>`;
+}
+
 // ── INICIO ────────────────────────────────────────────────
 function rInicio(){
   const {tot,paid,pending,libre,tc,extInc,neto}=calcT();
@@ -1076,6 +1297,7 @@ function rInicio(){
     <div class="mc"><div class="mc-l">⏳ Pendiente</div><div class="mc-v ${pending>0?'amb':'grn'}">${fmt(pending)}</div></div>
   </div>
   <div class="content">
+    ${ckCard()}
     <div style="background:var(--card);border-radius:14px;padding:12px 14px;border:0.5px solid var(--bdr);margin-bottom:10px">
       <div style="display:flex;justify-content:space-between;margin-bottom:4px"><span style="font-size:12px;color:var(--t2)">Progreso del mes</span><span style="font-size:12px;font-weight:600;color:var(--ind)">${pctP}% pagado</span></div>
       <div class="pbg"><div class="pfill" style="width:${pctP}%;background:var(--ind)"></div></div>
