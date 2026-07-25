@@ -161,10 +161,13 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .add-inp{flex:1;border:0.5px solid var(--bdr);border-radius:8px;padding:8px 10px;font-size:14px;background:#f9f9f9;color:var(--t1)}
 .add-inp:focus{outline:none;border-color:var(--green)}
 .add-go{background:var(--green);border:none;border-radius:8px;padding:8px 14px;color:#fff;font-size:14px;font-weight:500;cursor:pointer}
-.fab{position:fixed;right:16px;bottom:82px;z-index:150;border:none;width:54px;height:54px;border-radius:50%;padding:0;font-size:24px;cursor:pointer;color:#fff;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 16px rgba(0,0,0,.25)}
+/* FABs en columna vertical: el de abajo queda al alcance del pulgar */
+.fab,.fab2,.fab3{position:fixed;right:16px;z-index:150;border:none;width:48px;height:48px;border-radius:50%;padding:0;font-size:22px;cursor:pointer;color:#fff;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 16px rgba(0,0,0,.25)}
+.fab{bottom:82px}
+.fab2{bottom:198px;background:var(--green)}
+.fab3{bottom:140px;background:#8e8e93}
 .fab.green{background:var(--green)}
-.fab.blue{background:var(--blue)}
-.fab2{position:fixed;right:80px;bottom:82px;z-index:150;border:none;width:54px;height:54px;border-radius:50%;padding:0;font-size:22px;cursor:pointer;color:#fff;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 16px rgba(0,0,0,.25);background:var(--pur)}
+.fab.rojo{background:#e57373}
 .chart-card{background:var(--card);border-radius:16px;border:0.5px solid var(--bdr);padding:14px;margin-bottom:12px}
 .chart-ttl{font-size:12px;font-weight:600;color:var(--t2);text-transform:uppercase;letter-spacing:.5px;margin-bottom:12px}
 .brow{display:flex;align-items:center;gap:8px;margin-bottom:7px}
@@ -325,7 +328,6 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
     <div id="onb-f-mens">
       <label>Día del mes que cae tu pago</label>
       <input type="number" id="onb-dia" placeholder="Ej: 25" inputmode="numeric" min="1" max="31">
-      <div class="tip info" style="margin-top:12px;margin-bottom:0"><span class="ti">💡</span><div class="tb">Tu pago del día 25 (por ejemplo) <b>cubre el mes siguiente</b>. En la app registra cada gasto en el mes que el dinero cubre, no en el que pagas.</div></div>
     </div>
 
     <!-- campos quincenal (ocultos por defecto) -->
@@ -341,6 +343,13 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
     </div>
 
 
+
+    <label style="margin-bottom:8px">🗓️ ¿Qué mes cubre tu pago?</label>
+    <div class="toggle-row">
+      <button type="button" class="tgl-opt on" id="onb-m-ant" onclick="onbSetModo('anticipado')">⏭️ Anticipado</button>
+      <button type="button" class="tgl-opt" id="onb-m-ven" onclick="onbSetModo('vencido')">⏮️ Vencido</button>
+    </div>
+    <div class="tip info" style="margin-top:12px;margin-bottom:0"><span class="ti">💡</span><div class="tb" id="onb-modo-tip"></div></div>
 
     <button class="bfull" style="margin-top:24px" onclick="finishOnboarding()">Empezar →</button>
     <div style="text-align:center;margin-top:16px">
@@ -448,6 +457,12 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
         <div><label style="margin-top:0">Día 2do pago</label><input type="number" id="cfg-q2" inputmode="numeric" min="1" max="31" placeholder="30"></div>
       </div>
     </div>
+    <label style="margin-bottom:8px">🗓️ ¿Qué mes cubre tu pago?</label>
+    <div class="toggle-row">
+      <button type="button" class="tgl-opt on" id="cfg-m-ant" onclick="cfgSetModo('anticipado')">⏭️ Anticipado</button>
+      <button type="button" class="tgl-opt" id="cfg-m-ven" onclick="cfgSetModo('vencido')">⏮️ Vencido</button>
+    </div>
+    <div class="tip info" style="margin-top:12px;margin-bottom:0"><span class="ti">💡</span><div class="tb" id="cfg-modo-tip"></div></div>
 
     <div class="mbtns"><button class="bcancel" onclick="closeOv('ov-config')">Cancelar</button><button class="bsave" onclick="saveCfg()">Guardar</button></div>
   </div>
@@ -474,6 +489,14 @@ function NDAY2(){return gCfgApp()?.q2||30;}         // quincenal: segundo pago
 function GASOLINA(){return gCfgApp()?.gasolina||0;}
 function PRIMA(){return Math.round(NETO()/2);}
 function ES_QUINCENAL(){return TIPO_NOMINA()==='quincenal';}
+// Modo de mes: 'anticipado' = el pago cubre el mes siguiente (default histórico de la app).
+// 'vencido' = el pago cubre el mes que acaba de cerrar. Solo cambia la guía al usuario:
+// el mes que se muestra sigue siendo el mes calendario y el usuario decide dónde registra.
+function MODO_MES(){return gCfgApp()?.modoMes||'anticipado';}
+const MODO_TIP={
+  anticipado:'Tu pago <b>cubre el mes siguiente</b>: lo que recibes el 25 de julio es la plata de agosto. Registra cada gasto en el mes que el dinero cubre, no en el que lo pagas.',
+  vencido:'Tu pago <b>cubre el mes que ya cerró</b>: lo que recibes a comienzos de agosto paga lo de julio. Registra cada gasto en el mes en que se causó.'
+};
 
 // ── LÓGICA NÓMINA ─────────────────────────────────────────
 // Devuelve {dias, label, esHoy} hacia el próximo pago
@@ -643,6 +666,8 @@ function fmtM(n){n=Math.round(n)||0;return n>=1000000?(n/1000000).toFixed(1).rep
 
 // ── ONBOARDING ────────────────────────────────────────────
 let _onbTipo='mensual';
+let _onbModo='anticipado';
+function onbSetModo(m){_onbModo=m;document.getElementById('onb-m-ant').classList.toggle('on',m==='anticipado');document.getElementById('onb-m-ven').classList.toggle('on',m==='vencido');document.getElementById('onb-modo-tip').innerHTML=MODO_TIP[m];}
 function onbSetTipo(t){
   _onbTipo=t;
   document.getElementById('onb-t-mens').classList.toggle('on',t==='mensual');
@@ -650,12 +675,12 @@ function onbSetTipo(t){
   document.getElementById('onb-f-mens').style.display=t==='mensual'?'':'none';
   document.getElementById('onb-f-quin').style.display=t==='quincenal'?'':'none';
 }
-function checkOnboarding(){if(!gCfgApp()){document.getElementById('onboarding').classList.add('open');return true;}return false;}
+function checkOnboarding(){if(!gCfgApp()){onbSetModo(_onbModo);document.getElementById('onboarding').classList.add('open');return true;}return false;}
 function finishOnboarding(){
   const nombre=document.getElementById('onb-nombre').value.trim();
   const neto=parseInt(document.getElementById('onb-neto').value)||0;
   if(!neto){alert('Ingresa tu salario neto.');return;}
-  const cfg={nombre,neto,tipoNomina:_onbTipo};
+  const cfg={nombre,neto,tipoNomina:_onbTipo,modoMes:_onbModo};
   if(_onbTipo==='mensual'){
     cfg.nominaDia=parseInt(document.getElementById('onb-dia').value)||25;
   } else {
@@ -710,13 +735,17 @@ function restoreFromDrive(){if(!getDriveClientId()){alert('Conecta Google Drive 
 
 // ── ROUTING ───────────────────────────────────────────────
 function earliestDataMonth(){let minY=new Date().getFullYear(),minM=new Date().getMonth();for(let i=0;i<localStorage.length;i++){const k=localStorage.key(i);const m=k&&k.match(new RegExp('^'+PFX+'(\\d{4})_(\\d{1,2})$'));if(m){const y=+m[1],mm=+m[2];if(y<minY||(y===minY&&mm<minM)){minY=y;minM=mm;}}}return{y:minY,m:minM};}
+// Tope inferior de la navegación: enero 2026, aunque el mes esté vacío (para poder registrar meses
+// pasados). Si hay datos importados más antiguos se respeta ese mes, para no dejarlos inalcanzables.
+const MES_MIN={y:2026,m:0};
+function navFloor(){const min=earliestDataMonth();return(min.y<MES_MIN.y||(min.y===MES_MIN.y&&min.m<MES_MIN.m))?min:MES_MIN;}
 function isToday(){const h=new Date();return curY===h.getFullYear()&&curM===h.getMonth();}
 function isFuture(){const h=new Date();return curY>h.getFullYear()||(curY===h.getFullYear()&&curM>h.getMonth());}
 function goToday(){const h=new Date();curY=h.getFullYear();curM=h.getMonth();renderAll();}
 function changeMonth(dir){
   let ny=curY,nm=curM+dir;
   if(nm>11){nm=0;ny++;}if(nm<0){nm=11;ny--;}
-  const min=earliestDataMonth();if(ny<min.y||(ny===min.y&&nm<min.m))return;
+  const min=navFloor();if(ny<min.y||(ny===min.y&&nm<min.m))return;
   const h=new Date();let maxY=h.getFullYear(),maxM=h.getMonth()+2;if(maxM>11){maxM=maxM-12;maxY++;}
   if(ny>maxY||(ny===maxY&&nm>maxM))return;
   curY=ny;curM=nm;renderAll();
@@ -761,7 +790,7 @@ function updBdg(){const d=gD();const pg=d.gastos.filter(g=>!g.paid&&!g.tarjeta).
 function renderAll(){
   if(checkOnboarding())return;
   ['inicio','gastos','cadena','mercado','mas','ajustes'].forEach(s=>document.getElementById('s-'+s).style.display=s===curScreen?'':'none');
-  document.querySelectorAll('.fab,.fab2').forEach(f=>f.remove());
+  document.querySelectorAll('.fab,.fab2,.fab3').forEach(f=>f.remove());
   ({inicio:rInicio,gastos:rGastos,cadena:rCadena,mercado:rMercado,mas:rMas,ajustes:rAjustes})[curScreen]();
   updBdg();
 }
@@ -871,9 +900,9 @@ function rGastos(){
     <div class="shdr"><span class="sttl">💵 Ingresos extra</span><span style="font-size:11px;color:var(--t2)">${ingresos.length>0?fmt(totalInc):''}</span></div>
     <div class="list">${ingresos.map(incRow).join('')||'<div style="padding:16px;text-align:center;color:var(--t3);font-size:13px">Sin ingresos extra. Usa 💵 para agregar.</div>'}</div>
   </div>`;
-  const fab=document.createElement('button');fab.className='fab blue';fab.innerHTML='＋';fab.onclick=openAdd;document.body.appendChild(fab);
+  const fab=document.createElement('button');fab.className='fab rojo';fab.innerHTML='💸';fab.onclick=openAdd;document.body.appendChild(fab);
   const fab2=document.createElement('button');fab2.className='fab2';fab2.innerHTML='💵';fab2.onclick=openAddIngreso;document.body.appendChild(fab2);
-  const fab3=document.createElement('button');fab3.className='fab';fab3.innerHTML='🐜';fab3.style.right='144px';fab3.style.background='#8d6e63';fab3.style.fontSize='22px';fab3.onclick=openHormiga;document.body.appendChild(fab3);
+  const fab3=document.createElement('button');fab3.className='fab3';fab3.innerHTML='🐜';fab3.onclick=openHormiga;document.body.appendChild(fab3);
 }
 
 // ── CADENA ────────────────────────────────────────────────
@@ -1060,7 +1089,7 @@ function saveMrcGasto(){const onItems=gM().filter(i=>i.on);const total=onItems.r
 function rMas(){
   const tAh=totalAhorrado();const mC=totalMeta();
   const pctC=mC?Math.min(100,Math.round(tAh/mC*100)):0;
-  const allMonths=[];for(let y=2025;y<=curY+1;y++){for(let m=0;m<12;m++){const r=localStorage.getItem(key(y,m));if(r){const p=JSON.parse(r);let t=0,pg=0;p.gastos.forEach(g=>{t+=g.amount;if(g.paid)pg+=g.amount;});const inc=localStorage.getItem(keyInc(y,m));const extI=inc?JSON.parse(inc).reduce((s,i)=>s+i.monto,0):0;allMonths.push({lbl:MNS[m].slice(0,3),total:t,paid:pg,extras:extI});}}}
+  const allMonths=[];for(let y=Math.min(earliestDataMonth().y,navFloor().y);y<=curY+1;y++){for(let m=0;m<12;m++){const r=localStorage.getItem(key(y,m));if(r){const p=JSON.parse(r);let t=0,pg=0;p.gastos.forEach(g=>{t+=g.amount;if(g.paid)pg+=g.amount;});const inc=localStorage.getItem(keyInc(y,m));const extI=inc?JSON.parse(inc).reduce((s,i)=>s+i.monto,0):0;allMonths.push({lbl:MNS[m].slice(0,3),total:t,paid:pg,extras:extI});}}}
   const totalPages=Math.max(1,Math.ceil(allMonths.length/6));if(histOffset>=totalPages)histOffset=totalPages-1;
   const pageStart=Math.max(0,allMonths.length-6*(histOffset+1));const meses=allMonths.slice(pageStart,allMonths.length-6*histOffset);
   const maxV=Math.max(...meses.map(m=>m.total),1);
@@ -1082,7 +1111,7 @@ function rMas(){
 // ── AJUSTES ───────────────────────────────────────────────
 function rAjustes(){
   const driveOk=isDriveConnected();const driveId=getDriveClientId();
-  const nomSub=ES_QUINCENAL()?`Quincenal dias ${NDAY1()} y ${NDAY2()}`:`Mensual dia ${NDAY()}`;
+  const nomSub=(ES_QUINCENAL()?`Quincenal dias ${NDAY1()} y ${NDAY2()}`:`Mensual dia ${NDAY()}`)+` - mes ${MODO_MES()}`;
   const nTc=gTcs().length;
   document.getElementById('s-ajustes').innerHTML=rHdr('Ajustes',false)+`<div class="content">
     <div class="shdr"><span class="sttl">Mi perfil</span></div>
@@ -1116,9 +1145,11 @@ function rAjustes(){
 
 // ── CFG MODAL ─────────────────────────────────────────────
 let _cfgTipo='mensual';
+let _cfgModo='anticipado';
+function cfgSetModo(m){_cfgModo=m;document.getElementById('cfg-m-ant').classList.toggle('on',m==='anticipado');document.getElementById('cfg-m-ven').classList.toggle('on',m==='vencido');document.getElementById('cfg-modo-tip').innerHTML=MODO_TIP[m];}
 function cfgSetTipo(t){_cfgTipo=t;document.getElementById('cfg-t-mens').classList.toggle('on',t==='mensual');document.getElementById('cfg-t-quin').classList.toggle('on',t==='quincenal');document.getElementById('cfg-f-mens').style.display=t==='mensual'?'':'none';document.getElementById('cfg-f-quin').style.display=t==='quincenal'?'':'none';}
-function openCfgModal(){const c=gCfgApp()||{};document.getElementById('cfg-nombre').value=c.nombre||'';document.getElementById('cfg-neto').value=c.neto||'';const tipo=c.tipoNomina||'mensual';_cfgTipo=tipo;document.getElementById('cfg-t-mens').classList.toggle('on',tipo==='mensual');document.getElementById('cfg-t-quin').classList.toggle('on',tipo==='quincenal');document.getElementById('cfg-f-mens').style.display=tipo==='mensual'?'':'none';document.getElementById('cfg-f-quin').style.display=tipo==='quincenal'?'':'none';document.getElementById('cfg-dia').value=c.nominaDia||25;document.getElementById('cfg-q1').value=c.q1||15;document.getElementById('cfg-q2').value=c.q2||30;openOv('ov-config');}
-function saveCfg(){const nombre=document.getElementById('cfg-nombre').value.trim();const neto=parseInt(document.getElementById('cfg-neto').value)||0;const cfg={nombre,neto,tipoNomina:_cfgTipo};if(_cfgTipo==='mensual'){cfg.nominaDia=parseInt(document.getElementById('cfg-dia').value)||25;}else{cfg.q1=parseInt(document.getElementById('cfg-q1').value)||15;cfg.q2=parseInt(document.getElementById('cfg-q2').value)||30;}const _old=gCfgApp();if(_old&&_old.neto&&_old.neto!==neto)snapshotPastSalary(_old.neto);sCfgApp(cfg);closeOv('ov-config');renderAll();}
+function openCfgModal(){const c=gCfgApp()||{};document.getElementById('cfg-nombre').value=c.nombre||'';document.getElementById('cfg-neto').value=c.neto||'';const tipo=c.tipoNomina||'mensual';_cfgTipo=tipo;document.getElementById('cfg-t-mens').classList.toggle('on',tipo==='mensual');document.getElementById('cfg-t-quin').classList.toggle('on',tipo==='quincenal');document.getElementById('cfg-f-mens').style.display=tipo==='mensual'?'':'none';document.getElementById('cfg-f-quin').style.display=tipo==='quincenal'?'':'none';document.getElementById('cfg-dia').value=c.nominaDia||25;document.getElementById('cfg-q1').value=c.q1||15;document.getElementById('cfg-q2').value=c.q2||30;cfgSetModo(c.modoMes||'anticipado');openOv('ov-config');}
+function saveCfg(){const nombre=document.getElementById('cfg-nombre').value.trim();const neto=parseInt(document.getElementById('cfg-neto').value)||0;const cfg={nombre,neto,tipoNomina:_cfgTipo,modoMes:_cfgModo};if(_cfgTipo==='mensual'){cfg.nominaDia=parseInt(document.getElementById('cfg-dia').value)||25;}else{cfg.q1=parseInt(document.getElementById('cfg-q1').value)||15;cfg.q2=parseInt(document.getElementById('cfg-q2').value)||30;}const _old=gCfgApp();if(_old&&_old.neto&&_old.neto!==neto)snapshotPastSalary(_old.neto);sCfgApp(cfg);closeOv('ov-config');renderAll();}
 
 // ── ACCIONES ──────────────────────────────────────────────
 // Ahorro de un mes = suma de los gastos tipo Ahorro PAGADOS de ese mes (exacto, se autocorrige).
