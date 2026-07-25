@@ -31,7 +31,13 @@ app_{YYYY}_{M}       {gastos:[{id,name,amount,cat,paid,ahorro?,recurrente?,tarje
                        el botón discreto al final de Gastos los recupera (recurrentesDisponibles/cargarRecurrentes)
                      · hormiga? = gasto único "Gastos hormiga" del mes; hitems:[{id,desc,monto,fecha}] con el detalle
                        por día (modal ov-hdet). amount/hcount se llevan incrementalmente, nunca se recalculan a ciegas
-app_inc_{YYYY}_{M}   ingresos extra del mes [{id,desc,monto,cat}]  ← cat: Trabajo adicional/Prima/Bono empresa/Obsequio/Otros
+                     · gasto DERIVADO de cadena: id `g_cad_<cadId>` + cadId, cat 'Ahorro', paid:true. Es la suma de
+                       TUS aportes ya marcados en Cobros (app_cd_). No se edita ni se borra en la UI (lleva a Cobros):
+                       lo recalcula syncCadenaGastos/syncCadenaGastosEn y se borra solo al desmarcar o al borrar la cadena
+app_inc_{YYYY}_{M}   ingresos extra del mes [{id,desc,monto,cat}]  ← cat: Trabajo adicional/Prima/Bono empresa/Obsequio/Cadena/Otros
+                     · ingreso DERIVADO del pozo: id `inc_cad_<cadId>_<posId>`, cat 'Cadena'. Aparece solo en el mes
+                       del turno de esa posición (respeta miSplit) vía syncPozoIngresos; tampoco se edita a mano.
+                       Para corregir el monto real se usa posicion.montoPozo en la config de la cadena
 app_cd_{YYYY}_{M}    estado cadena del mes (v2): {v:2, paid:{'<cadId>|<posId>|d<dia>':true}, cobros:{}}
                      · NO congela montos: las filas se derivan de app_ccfg cada vez (getCPagos)
 app_ccfg             cadenas (v2): {v:2, cadenas:[{id,nombre,valorCuota,frecuencia,dias:[],diaPago,
@@ -68,6 +74,10 @@ cartera_prerestore   (sin prefijo app_) snapshot de seguridad antes de un restor
 2. **NUNCA** hardcodear datos personales. Todo lo configurable va al onboarding o a Ajustes.
 3. **Un solo archivo.** No fragmentar en módulos/archivos JS separados salvo decisión explícita del dueño.
 4. Todo cambio que escriba en localStorage debe llamar `autoSync()` después (sube respaldo a Drive si hay token).
+4b. **Derivados de la cadena** (gasto del aporte + ingreso del pozo): `renderAll()` llama `syncPozoIngresos(curY,curM)`
+   y `syncCadenaGastos()`. Ambos son idempotentes y **solo escriben si algo cambió** — si tocas esa lógica, mantén
+   esa guarda o cada render dispara escritura + `autoSync()`. `aplicarCadenas(cads)` (no `setCadenas` directo) es
+   la puerta para guardar cadenas: barre pozos en el rango viejo+nuevo y gastos derivados en todos los meses con datos.
 5. Mantener español colombiano en toda la UI. Formato moneda: `toLocaleString('es-CO')` con prefijo `$`.
 6. Mobile-first: la app se usa en iPhone vía Safari/PWA. Probar mentalmente a 390px de ancho.
 7. Confirmación antes de cualquier acción destructiva (ya existe `showConfirm()` — usarla).

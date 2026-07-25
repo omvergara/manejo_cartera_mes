@@ -419,6 +419,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
       <option value="Prima">🎁 Prima</option>
       <option value="Bono empresa">🏢 Bono empresa</option>
       <option value="Préstamos recibido">🤝 Préstamos recibido</option>
+      <option value="Cadena">🔗 Cadena (pozo)</option>
       <option value="Obsequio">🎉 Obsequio</option>
       <option value="Otros">📦 Otros</option>
     </select>
@@ -668,6 +669,12 @@ function seedGastos(y,m){
   return DG.map(g=>({...g}));
 }
 function sD(d){safeSet(key(curY,curM),d);autoSync();}
+// Lectura/escritura de un mes ARBITRARIO. gDRaw NO siembra: devuelve null si el mes no existe
+// (así una reconciliación masiva no materializa meses que el usuario nunca abrió).
+function gDRaw(y,m){const r=localStorage.getItem(key(y,m));if(!r)return null;try{return JSON.parse(r);}catch(e){return null;}}
+function sDOf(y,m,d){safeSet(key(y,m),d);autoSync();}
+// Todos los meses que ya tienen datos guardados.
+function mesesConDatos(){const out=[];const re=new RegExp('^'+PFX+'(\\d{4})_(\\d{1,2})$');for(let i=0;i<localStorage.length;i++){const k=localStorage.key(i);const mm=k&&k.match(re);if(mm)out.push({y:+mm[1],m:+mm[2]});}return out;}
 // Recurrentes que existen en meses anteriores y NO están en el mes visible (por nombre).
 // Permite recuperarlos si el usuario los borró de un mes futuro (el arrastre automático solo
 // ocurre la primera vez que se abre un mes sin datos).
@@ -908,7 +915,7 @@ let _swipeUntil=0;
     if(Date.now()-t0>700)return;                     // arrastre lento = probablemente scroll
     if(Math.abs(dx)<60||Math.abs(dx)<Math.abs(dy)*1.6)return;
     const antesY=curY,antesM=curM;const dir=dx<0?1:-1;
-    _swipeUntil=Date.now()+600;
+    _swipeUntil=Date.now()+350;// el click fantasma llega en pocos ms; ventana corta para no comerse un toque real
     changeMonth(dir);
     if(curY!==antesY||curM!==antesM)animSwipe(dir);
   },{passive:true});
@@ -961,6 +968,9 @@ function calcT(){
 function updBdg(){const d=gD();const pg=d.gastos.filter(g=>!g.paid&&!g.tarjeta).length;const pc=getCPagos().filter(p=>!p.paid).length;const pm=gM().filter(x=>x.on).length;[['bdg-g',pg],['bdg-c',pc],['bdg-m',pm]].forEach(([id,n])=>{const el=document.getElementById(id);if(el){el.textContent=n;el.style.display=n>0?'flex':'none';}});}
 function renderAll(){
   if(checkOnboarding())return;
+  // Derivados de la cadena en el mes visible (ambos guardados: solo escriben si algo cambió).
+  syncPozoIngresos(curY,curM);// el pozo de tu turno entra como ingreso extra
+  syncCadenaGastos();         // los aportes marcados entran como gasto (y limpia huérfanos)
   ['inicio','gastos','cadena','mercado','mas','ajustes'].forEach(s=>document.getElementById('s-'+s).style.display=s===curScreen?'':'none');
   document.querySelectorAll('.fab,.fab2,.fab3').forEach(f=>f.remove());
   ({inicio:rInicio,gastos:rGastos,cadena:rCadena,mercado:rMercado,mas:rMas,ajustes:rAjustes})[curScreen]();
@@ -1012,7 +1022,7 @@ function rInicio(){
   if(deudaTot>0){const nT=gTcs().length;tips+=`<div class="tip info"><span class="ti">💳</span><div class="tb">Deuda en tarjeta${nT>1?'s':''}: <b>${fmt(deudaTot)}</b>.${nT>1?` (${nT} tarjetas)`:''} Ve a Análisis para el detalle de pago.</div></div>`;}
   if(mC>0)tips+=`<div class="tip teal"><span class="ti">🏡</span><div class="tb">Meta ahorro: <b>${fmt(tAh)}</b> de ${fmt(mC)} (${pctC}%).</div></div>`;
   if(extInc>0)tips+=`<div class="tip pur"><span class="ti">💜</span><div class="tb">Ingresos extra este mes: <b>${fmt(extInc)}</b>. Total disponible: <b>${fmt(neto+extInc)}</b>.</div></div>`;
-  const _cob=cobrosMes(curY,curM);if(_cob.length){const _ct=_cob.reduce((a,x)=>a+x.monto,0);tips+=`<div class="tip gold"><span class="ti">🏆</span><div class="tb">Este mes <b>cobras el pozo</b> de tu cadena: <b>${fmt(_ct)}</b>.</div></div>`;}
+  const _cob=cobrosMes(curY,curM);if(_cob.length){const _ct=_cob.reduce((a,x)=>a+x.monto,0);tips+=`<div class="tip gold"><span class="ti">🏆</span><div class="tb">Este mes <b>cobras el pozo</b> de tu cadena: <b>${fmt(_ct)}</b> (ya sumado a tus ingresos extra).</div></div>`;}
   // Prima anticipada: aviso 1-2 meses antes del semestre, fuera del mes de prima.
   // Recordatorio anticipatorio al abrir: nómina cerca + gastos sin pagar (solo en el mes actual real).
   if(isToday()){const _ni=infoNomina();const _np=gD().gastos.filter(g=>!g.paid).length;if(_ni.dias<=3&&_np>0)tips=`<div class="tip warn"><span class="ti">⏰</span><div class="tb">${_ni.dias===0?'Hoy cae tu nómina':'En '+_ni.dias+' día'+(_ni.dias>1?'s':'')+' cae tu nómina'} y tienes <b>${_np}</b> ${_np>1?'gastos':'gasto'} sin pagar (${fmt(pending)}).</div></div>`+tips;}
@@ -1056,8 +1066,10 @@ function rGastos(){
   const ingresos=gInc();const totalInc=ingresos.reduce((s,i)=>s+i.monto,0);
   const tcTotal=tcs.reduce((s,g)=>s+g.amount,0);const ingTot=C.neto+C.extInc;
   const metaName=id=>{const m=gMetas().find(x=>x.id===id);return m?(m.icono||'🐷')+' '+esc(m.nombre):'meta';};
-  const row=g=>{const safeName=esc(g.name);const act=g.hormiga?'openHormigaDet()':`openEdit('${g.id}')`;return `<div class="grow"><button class="chk ${g.paid?'on':''}" onclick="tPaid('${g.id}')"></button><div class="gico" style="background:${gBg(g.name)}">${catIco(g.cat)}</div><div class="ginf" onclick="${act}"><div class="gnm ${g.paid?'done':''}">${safeName}</div><div class="gsb">${esc(g.cat||'')}${g.hormiga?`<span class="ant-badge" style="background:#efebe9;color:#5d4037">&#128028; ${(g.hitems||[]).length||g.hcount||0} registros &#8250;</span>`:''}${g.recurrente?'<span class="ant-badge" style="background:var(--ibg);color:var(--it)">&#128260; mensual</span>':''}${g.tarjeta?'<span class="ant-badge" style="background:var(--rbg);color:var(--rt)">&#128179; compra TC</span>':''}${g.abonoTc?'<span class="ant-badge" style="background:var(--gbg);color:var(--gt)">&#128184; pago TC</span>':''}${(g.ahorro&&g.metaId)?`<span class="ant-badge" style="background:var(--tbg);color:var(--tt)">&#8594; ${metaName(g.metaId)}</span>`:''}</div></div><div class="gamt ${g.paid?'done':''}" onclick="${act}">${fmt(g.amount)}</div><button class="del" data-id="${g.id}" data-name="${safeName}" onclick="delGasto(this)">&#215;</button></div>`;}
-  const incRow=i=>{const safeDesc=esc(i.desc);return `<div class="inc-row"><div class="inc-ico">&#128181;</div><div class="inc-inf" onclick="openEditIngreso('${i.id}')"><div class="inc-nm">${safeDesc}</div><div class="inc-sb">${esc(i.cat||'Otros')}</div></div><div class="inc-amt">${fmt(i.monto)}</div><button class="del" data-id="${i.id}" data-name="${safeDesc}" onclick="delIngreso(this)">&#215;</button></div>`;}
+  // Las filas de cadena son derivadas (salen de Cobros): no se editan, no se borran, llevan allá.
+  const row=g=>{const safeName=esc(g.name);const cad=esGastoCadena(g);const act=cad?"goTo('cadena')":(g.hormiga?'openHormigaDet()':`openEdit('${g.id}')`);return `<div class="grow"><button class="chk ${g.paid?'on':''}" onclick="${cad?"goTo('cadena')":`tPaid('${g.id}')`}"${cad?' title="Se marca desde Cobros"':''}></button><div class="gico" style="background:${gBg(g.name)}">${catIco(g.cat)}</div><div class="ginf" onclick="${act}"><div class="gnm ${g.paid?'done':''}">${safeName}</div><div class="gsb">${esc(g.cat||'')}${cad?'<span class="ant-badge" style="background:var(--ibg);color:var(--it)">&#128279; aportes marcados en Cobros &#8250;</span>':''}${g.hormiga?`<span class="ant-badge" style="background:#efebe9;color:#5d4037">&#128028; ${(g.hitems||[]).length||g.hcount||0} registros &#8250;</span>`:''}${g.recurrente?'<span class="ant-badge" style="background:var(--ibg);color:var(--it)">&#128260; mensual</span>':''}${g.tarjeta?'<span class="ant-badge" style="background:var(--rbg);color:var(--rt)">&#128179; compra TC</span>':''}${g.abonoTc?'<span class="ant-badge" style="background:var(--gbg);color:var(--gt)">&#128184; pago TC</span>':''}${(g.ahorro&&g.metaId)?`<span class="ant-badge" style="background:var(--tbg);color:var(--tt)">&#8594; ${metaName(g.metaId)}</span>`:''}</div></div><div class="gamt ${g.paid?'done':''}" onclick="${act}">${fmt(g.amount)}</div>${cad?'<span class="del" style="opacity:.25;cursor:default" title="Se quita desmarcando los aportes en Cobros">&#128279;</span>':`<button class="del" data-id="${g.id}" data-name="${safeName}" onclick="delGasto(this)">&#215;</button>`}</div>`;}
+  // El pozo de la cadena es un ingreso derivado: se ajusta desde la config de Cobros, no a mano.
+  const incRow=i=>{const safeDesc=esc(i.desc);const poz=esIngresoPozo(i);return `<div class="inc-row"><div class="inc-ico">${poz?'&#128279;':'&#128181;'}</div><div class="inc-inf" onclick="${poz?"goTo('cadena')":`openEditIngreso('${i.id}')`}"><div class="inc-nm">${safeDesc}</div><div class="inc-sb">${esc(i.cat||'Otros')}${poz?'<span class="ant-badge" style="background:var(--abg);color:var(--at)">&#127942; pozo automático &#8250;</span>':''}</div></div><div class="inc-amt">${fmt(i.monto)}</div>${poz?'<span class="del" style="opacity:.25;cursor:default" title="Sale de tu turno en Cobros; ajusta el monto del pozo en su configuración">&#128279;</span>':`<button class="del" data-id="${i.id}" data-name="${safeDesc}" onclick="delIngreso(this)">&#215;</button>`}</div>`;}
   const futureBanner=isFuture()?`<div class="tip ind" style="margin-bottom:10px"><span class="ti">⚡</span><div class="tb"><b>Mes futuro</b> — planificando ${MNS[curM]}. Gastos se pagan en ${curM===0?MNS[11]:MNS[curM-1]}.</div></div>`:'';
   // El bloque de Ingresos abre el editor del ingreso base de ESTE mes (con nota).
   const nota=notaMes(curY,curM);const manual=netoEsManual(curY,curM);const antes=antesDeInicio(curY,curM);
@@ -1092,10 +1104,12 @@ function rGastos(){
 function cdKey(y,m){return `${PFX}cd_${y}_${m}`;}
 function gPaidState(y,m){const r=localStorage.getItem(cdKey(y,m));if(!r)return{paid:{},cobros:{}};try{const o=JSON.parse(r);return (o&&o.v>=2)?{paid:o.paid||{},cobros:o.cobros||{}}:{paid:{},cobros:{}};}catch(e){return{paid:{},cobros:{}};}}
 // Deriva las filas de aportes del mes actual desde la config (no congela montos) y lee el estado pagado.
-function getCPagos(){
-  const st=gPaidState(curY,curM).paid;const rows=[];
+function getCPagos(){return getCPagosOf(curY,curM);}
+// Filas de aportes de un mes ARBITRARIO (las usa la reconciliación del gasto derivado).
+function getCPagosOf(y,m){
+  const st=gPaidState(y,m).paid;const rows=[];
   getCadenas().forEach(c=>{
-    if(!cadVigente(c,curY,curM))return;// fuera del rango de la cadena: no hay aportes que marcar
+    if(!cadVigente(c,y,m))return;// fuera del rango de la cadena: no hay aportes que marcar
     const dias=(c.frecuencia==='mensual')?[c.dias[0]]:c.dias;
     (c.posiciones||[]).forEach(p=>{
       const split=+p.miSplit||1;const tuyo=(+c.valorCuota||0)*split;const comp=(+c.valorCuota||0)*(1-split);const compartido=p.tipo==='compartido';
@@ -1108,9 +1122,105 @@ function getCPagos(){
   return rows;
 }
 function saveCPagos(rows){const st=gPaidState(curY,curM);const paid={};rows.forEach(r=>{if(r.paid)paid[r.key]=true;});safeSet(cdKey(curY,curM),{v:2,paid,cobros:st.cobros});autoSync();}
-function tCadena(key){const rows=getCPagos();const it=rows.find(x=>x.key===key);if(it)it.paid=!it.paid;saveCPagos(rows);renderAll();}
+function tCadena(key){
+  const rows=getCPagos();const it=rows.find(x=>x.key===key);if(!it)return;
+  const habia=!!gD().gastos.find(g=>g.id===cadGastoId(it.cadId));
+  it.paid=!it.paid;saveCPagos(rows);
+  syncCadenaGastos();// el aporte marcado se vuelve gasto real del mes
+  const hay=!!gD().gastos.find(g=>g.id===cadGastoId(it.cadId));
+  renderAll();
+  if(!habia&&hay)avisoCadenaManual();// primera vez en este mes: ¿tenía uno a mano?
+}
 // Pozos (cobros) que caen en el mes (y,m): cuando el índice de mes de la cadena coincide con el turno de una posición.
 function cobrosMes(y,m){const list=[];getCadenas().forEach(c=>{const idx=cadIdxMes(c,y,m);if(idx<1||idx>cadDuracion(c))return;(c.posiciones||[]).forEach(p=>{if((+p.turnoMes||0)===idx)list.push({cadId:c.id,nombre:c.nombre,monto:cadPozo(c,p),compartido:p.tipo==='compartido'});});});return list;}
+
+// ── CADENA ↔ CAJA DEL MES ─────────────────────────────────
+// Los aportes que marcas se reflejan como un gasto REAL del mes (uno por cadena, id determinista
+// g_cad_<cadId>) y el pozo de tu turno como un ingreso extra (inc_cad_<cadId>_<posId>).
+// Ambos son DERIVADOS e idempotentes: se recalculan desde la config y desaparecen solos si el
+// aporte se desmarca o el turno/cadena cambia. Por eso no se editan a mano (llevan a Cobros).
+function cadGastoId(cadId){return 'g_cad_'+cadId;}
+function esGastoCadena(g){return !!(g&&g.id&&g.id.indexOf('g_cad_')===0);}
+function esIngresoPozo(i){return !!(i&&i.id&&String(i.id).indexOf('inc_cad_')===0);}
+// Lo TUYO ya marcado de una cadena en el mes (y,m).
+function cadAporteMarcado(y,m,cadId){return getCPagosOf(y,m).filter(r=>r.cadId===cadId&&r.paid).reduce((s,r)=>s+r.tuyo,0);}
+// Ajusta el gasto derivado de una cadena dentro del objeto del mes. Devuelve true si cambió.
+function reconcileCadenaGastoEn(y,m,c,d){
+  const pagado=cadAporteMarcado(y,m,c.id);
+  const gid=cadGastoId(c.id);const i=d.gastos.findIndex(g=>g.id===gid);
+  if(pagado>0){
+    const nombre='Cadena · '+((c.nombre||'').trim()||'cadena');
+    if(i<0){d.gastos.push({id:gid,name:nombre,amount:pagado,cat:'Ahorro',paid:true,cadId:c.id});return true;}
+    const g=d.gastos[i];
+    if(g.amount!==pagado||g.name!==nombre||!g.paid){g.amount=pagado;g.name=nombre;g.paid=true;g.cadId=c.id;return true;}
+    return false;
+  }
+  if(i>=0){d.gastos.splice(i,1);return true;}
+  return false;
+}
+// Recalcula los gastos de cadena de un mes y limpia los de cadenas ya borradas (huérfanos).
+// Solo materializa el mes visible; a los demás no los crea si no existen.
+function syncCadenaGastosEn(y,m){
+  const esVisible=(y===curY&&m===curM);
+  const d=esVisible?gD():gDRaw(y,m);
+  if(!d||!Array.isArray(d.gastos))return false;
+  const ids=new Set(getCadenas().map(c=>c.id));
+  const antes=d.gastos.length;
+  d.gastos=d.gastos.filter(g=>!(esGastoCadena(g)&&!ids.has(g.id.slice(6))));
+  let ch=d.gastos.length!==antes;
+  getCadenas().forEach(c=>{if(reconcileCadenaGastoEn(y,m,c,d))ch=true;});
+  if(ch){if(esVisible)sD(d);else sDOf(y,m,d);}
+  return ch;
+}
+function syncCadenaGastos(){return syncCadenaGastosEn(curY,curM);}
+// Si el usuario ya llevaba la cadena como gasto a mano, ofrece borrarlo para no contarla dos veces.
+function avisoCadenaManual(){
+  const man=gD().gastos.find(g=>!esGastoCadena(g)&&/cadena/i.test(g.name||'')&&(+g.amount||0)>0);
+  if(!man)return;
+  showConfirm(`¿Borro tu gasto "${man.name}"?`,'Desde ahora la cadena entra sola a tus gastos cuando marcas los aportes. Si dejas el gasto manual, esa plata queda contada dos veces.',()=>{
+    const d=gD();d.gastos=d.gastos.filter(x=>x.id!==man.id);sD(d);renderAll();
+  },'Borrarlo');
+}
+// Ingresos del pozo en el mes (y,m): crea/ajusta/borra según los turnos de la config. Idempotente.
+function pozoIncId(cadId,posId){return 'inc_cad_'+cadId+'_'+posId;}
+function syncPozoIngresos(y,m){
+  const esperado={};
+  getCadenas().forEach(c=>{
+    const idx=cadIdxMes(c,y,m);if(idx<1||idx>cadDuracion(c))return;
+    (c.posiciones||[]).forEach(p=>{
+      if((+p.turnoMes||0)!==idx)return;
+      esperado[pozoIncId(c.id,p.id)]={desc:'Pozo '+((c.nombre||'').trim()||'cadena')+(p.tipo==='compartido'?' (tu parte)':''),monto:Math.round(cadPozo(c,p)),cat:'Cadena'};
+    });
+  });
+  const out=[];let ch=false;
+  gIncOf(y,m).forEach(it=>{
+    if(!esIngresoPozo(it)){out.push(it);return;}
+    const e=esperado[it.id];
+    if(!e){ch=true;return;}// el turno cambió o la cadena se borró
+    if(it.desc!==e.desc||it.monto!==e.monto||it.cat!==e.cat)ch=true;
+    out.push({id:it.id,...e});delete esperado[it.id];
+  });
+  Object.keys(esperado).forEach(id=>{out.push({id,...esperado[id]});ch=true;});
+  if(ch)sIncOf(y,m,out);
+  return ch;
+}
+// Todos los meses que abarcan unas cadenas (para barrer pozos viejos al cambiar la config).
+function mesesDeCadenas(cads){
+  const set=new Set();
+  (cads||[]).forEach(c=>{const dur=cadDuracion(c);for(let i=0;i<dur;i++){let mm=(+c.mesInicio||0)+i,yy=+c.anioInicio||curY;while(mm>11){mm-=12;yy++;}set.add(yy+'_'+mm);}});
+  return set;
+}
+// Guarda la config y re-sincroniza: pozos en el rango viejo Y el nuevo (turnos movidos, cadenas
+// borradas) y los gastos derivados en TODOS los meses con datos (si no, quedan huérfanos
+// imborrables en meses que no estás viendo).
+function aplicarCadenas(cads){
+  const meses=mesesDeCadenas(getCadenas());
+  setCadenas(cads);
+  mesesDeCadenas(cads).forEach(k=>meses.add(k));
+  meses.add(curY+'_'+curM);
+  meses.forEach(k=>{const p=k.split('_');syncPozoIngresos(+p[0],+p[1]);});
+  mesesConDatos().forEach(x=>syncCadenaGastosEn(x.y,x.m));
+}
 
 // El módulo "Cobros" agrupa dos funciones: la cadena de ahorro y los préstamos a familia.
 let _cobTab='cadena';
@@ -1143,14 +1253,14 @@ function cadenaBody(){
       :`Terminó en <b>${MNS[fin.m]} ${fin.y}</b> (${dur} meses). En ${MNS[curM]} ${curY} ya no hay aportes.`;
     const bodyRows=vig?pRows:`<div style="padding:16px;text-align:center;color:var(--t2);font-size:13px;line-height:1.5">🚫 ${fueraMsg}</div>`;
     const cob=cobros.filter(x=>x.cadId===c.id);
-    const pozoCard=cob.map(x=>`<div class="tip gold"><span class="ti">🏆</span><div class="tb">Este mes (mes ${idx} de ${dur}) <b>cobras el pozo</b> de ${esc(c.nombre)}: <b>${fmt(x.monto)}</b>${x.compartido?' (tu parte)':''}.</div></div>`).join('');
+    const pozoCard=cob.map(x=>`<div class="tip gold"><span class="ti">🏆</span><div class="tb">Este mes (mes ${idx} de ${dur}) <b>cobras el pozo</b> de ${esc(c.nombre)}: <b>${fmt(x.monto)}</b>${x.compartido?' (tu parte)':''}. Ya está en tus <b>ingresos extra</b> de ${MNS[curM]}; si el pozo real es otro, corrígelo en ⚙️ → "Monto del pozo".</div></div>`).join('');
     const frecLbl=c.frecuencia==='mensual'?`Cobro día ${dias[0]}`:`Cobros días ${dias.join(' y ')}`;
     const nMios=(c.posiciones||[]).length;
     const subLbl=vig
       ?`${frecLbl} • Pagas el ${c.diaPago} de ${msPrev} para cubrir ${MNS[curM]} • mes ${idx} de ${dur}`
       :`${cadRangoLbl(c)} • ${dur} meses`;
     const progreso=vig?`<div style="margin-top:10px"><div class="pbg"><div class="pfill" style="width:${pct}%;background:var(--ind)"></div></div><div class="prw"><span class="plbl">${nP}/${cRows.length} aportes · ${fmt(tuT)}/mes</span><span class="plbl">${pct}%</span></div></div>`:'';
-    html+=`<div class="list" style="margin-bottom:12px"><div class="cdhdr"><div style="display:flex;justify-content:space-between;align-items:flex-start"><div><div class="cdttl">🔗 ${esc(c.nombre)} · ${c.puestosGrupo} puestos</div><div class="cdsub">${subLbl}</div></div><button class="cfg-btn" onclick="openCadConf()">⚙️</button></div>${progreso}</div>${bodyRows}</div>${pozoCard}`;
+    html+=`<div class="list" style="margin-bottom:12px"><div class="cdhdr"><div style="display:flex;justify-content:space-between;align-items:flex-start"><div><div class="cdttl">🔗 ${esc(c.nombre)} · ${c.puestosGrupo} puestos</div><div class="cdsub">${subLbl}</div></div><button class="cfg-btn" onclick="openCadConf()">⚙️</button></div>${progreso}</div>${bodyRows}${vig?`<div style="padding:9px 14px;font-size:11px;color:var(--t2);border-top:0.5px solid var(--bdr);line-height:1.5">💸 Lo que marques aquí se suma solo al gasto <b>“Cadena · ${esc((c.nombre||'').trim()||'cadena')}”</b> de ${MNS[curM]} en la pantalla Gastos.</div>`:''}</div>${pozoCard}`;
     const tl=[];for(let i=0;i<dur;i++){let mm=c.mesInicio+i,yy=c.anioInicio;while(mm>11){mm-=12;yy++;}const turnos=(c.posiciones||[]).filter(p=>(+p.turnoMes||0)===i+1);tl.push({mes:MNS[mm],anio:yy,idx:i+1,isCur:mm===curM&&yy===curY,isPast:(yy<curY)||(yy===curY&&mm<curM),turnos,puestos:cadPuestosDeMes(c,i+1)});}
     // Timeline: cada mes muestra QUÉ PUESTOS del grupo cobran (los de los otros integrantes también)
     // y, si alguno es tuyo, su pozo. Así se ve la cadena completa, no solo tus turnos.
@@ -1264,7 +1374,7 @@ function ccDia(i,v){_ccEdit.cadenas[_ccEdit.sel].dias[i]=parseInt(v)||0;}
 function ccFreq(f){const c=_ccEdit.cadenas[_ccEdit.sel];c.frecuencia=f;if(f==='mensual'){c.dias=[c.dias[0]||30];c.salenPorPeriodo=c.salenPorPeriodo||1;}else{c.dias=[c.dias[0]||5,c.dias[1]||15];}ccRender();}
 function ccSel(i){_ccEdit.sel=i;ccRender();}
 function ccAdd(){_ccEdit.cadenas.push(nuevaCadena());_ccEdit.sel=_ccEdit.cadenas.length-1;ccRender();}
-function ccDelCadena(){if(_ccEdit.cadenas.length<=1){showConfirm('¿Eliminar la cadena?','Quedarás sin cadenas configuradas.',()=>{setCadenas([]);closeOv('ov-cc');renderAll();});return;}_ccEdit.cadenas.splice(_ccEdit.sel,1);_ccEdit.sel=0;ccRender();}
+function ccDelCadena(){if(_ccEdit.cadenas.length<=1){showConfirm('¿Eliminar la cadena?','Quedarás sin cadenas configuradas. Se quitan también su gasto y el ingreso del pozo que había generado.',()=>{aplicarCadenas([]);closeOv('ov-cc');renderAll();});return;}_ccEdit.cadenas.splice(_ccEdit.sel,1);_ccEdit.sel=0;ccRender();}
 function ccAddPos(){_ccEdit.cadenas[_ccEdit.sel].posiciones.push(nuevaPosicion());ccRender();}
 function ccDelPos(i){_ccEdit.cadenas[_ccEdit.sel].posiciones.splice(i,1);ccRender();}
 function ccPosField(i,f,v){const p=_ccEdit.cadenas[_ccEdit.sel].posiciones[i];p[f]=(f==='conQuien')?v:(parseInt(v)||0);}
@@ -1272,7 +1382,7 @@ function ccPosTipo(i,t){const p=_ccEdit.cadenas[_ccEdit.sel].posiciones[i];p.tip
 function ccPosSplit(i,v){const p=_ccEdit.cadenas[_ccEdit.sel].posiciones[i];p.miSplit=Math.min(1,Math.max(0,(parseInt(v)||0)/100));}
 function saveCadenaConfig(){
   const cads=_ccEdit.cadenas.map(c=>({id:c.id,nombre:(c.nombre||'Cadena').trim(),valorCuota:+c.valorCuota||0,frecuencia:c.frecuencia==='mensual'?'mensual':'quincenal',dias:(c.frecuencia==='mensual')?[+c.dias[0]||30]:[+c.dias[0]||5,+c.dias[1]||15],diaPago:+c.diaPago||25,puestosGrupo:+c.puestosGrupo||0,salenPorPeriodo:+c.salenPorPeriodo||(c.frecuencia==='mensual'?1:2),mesInicio:+c.mesInicio||0,anioInicio:+c.anioInicio||curY,posiciones:(c.posiciones||[]).map(p=>({id:p.id,tipo:p.tipo==='compartido'?'compartido':'propio',miSplit:p.tipo==='compartido'?(+p.miSplit||0.5):1,conQuien:p.conQuien||'',turnoMes:+p.turnoMes||0,montoPozo:+p.montoPozo||0}))}));
-  setCadenas(cads);closeOv('ov-cc');renderAll();
+  aplicarCadenas(cads);closeOv('ov-cc');renderAll();
 }
 
 // ── MERCADO ───────────────────────────────────────────────

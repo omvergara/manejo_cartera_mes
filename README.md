@@ -58,7 +58,7 @@ La lista de todo lo que pagas en el mes. Cada gasto se **chulea** cuando lo paga
 ### 🤝 Cobros — *la plata que entra o que te deben*
 Un módulo con **dos pestañas**:
 
-- **🔗 Cadena** — tu cadena de ahorro (san). Marcas cada cuota quincenal o mensual, ves cuánto llevas y un **timeline** que te dice en qué mes te toca **cobrar el pozo** y **qué puestos del grupo cobran** los demás meses. Soporta tener **un puesto propio y uno compartido** a la vez (cada turno aparece con su monto). La cadena **solo se puede marcar dentro de su vigencia** (de su mes de inicio hasta el último mes): en meses anteriores o posteriores te dice por qué no hay aportes.
+- **🔗 Cadena** — tu cadena de ahorro (san). **Lo que marcas aquí sí mueve tus cuentas**: cada aporte que chuleas se suma solo a un gasto `Cadena · <nombre>` del mes (si los desmarcas, desaparece), y en el mes de tu turno el **pozo entra como ingreso extra** automáticamente (si el pozo real es otro, lo corriges en ⚙️ → *Monto del pozo*). Esas dos filas no se editan a mano: te llevan a Cobros. Marcas cada cuota quincenal o mensual, ves cuánto llevas y un **timeline** que te dice en qué mes te toca **cobrar el pozo** y **qué puestos del grupo cobran** los demás meses. Soporta tener **un puesto propio y uno compartido** a la vez (cada turno aparece con su monto). La cadena **solo se puede marcar dentro de su vigencia** (de su mes de inicio hasta el último mes): en meses anteriores o posteriores te dice por qué no hay aportes.
 - **🤝 Préstamos** — el dinero que **tú le prestas a la familia**. Configuras hasta **5 préstamos** (a quién, monto, **en qué mes prestaste**, en cuántas cuotas, y un interés mensual opcional). La app calcula la **cuota**, le pone a cada una **el mes en que se cobra** y tú **chuleas cada pago** que te hacen (las cuotas de meses que aún no llegan quedan bloqueadas, y en los meses anteriores al préstamo no aparece nada). Cada cuota que recibes entra automáticamente como un **ingreso extra "Préstamos recibido"** del mes, y ves en todo momento cuánto te falta por cobrar.
 
 ### 🛒 Mercado
@@ -143,7 +143,8 @@ Como todo vive en el navegador, si borras el caché de Safari o cambias de telé
 - **Convención de mes** = el mes que el dinero cubre (no el de pago). **Mes de inicio de operación** configurable: antes de él el ingreso base es 0 y no hay navegación ni histórico.
 - **Ingreso base editable por mes** con nota libre (`app_{Y}_{M}.neto/netoManual/netoNota`), sin tocar el salario global.
 - **Navegación por mes** con flechas o *swipe* horizontal, hasta 2 meses en el futuro.
-- **Módulo Cobros**: cadenas de ahorro v2 (varias cadenas, varios puestos, splits configurables, mensual/quincenal, cobro del pozo) + **préstamos a familia** (hasta 5, cuota por amortización, interés mensual opcional, cada cuota pagada se registra como ingreso "Préstamos recibido").
+- **Cadena ↔ caja del mes**: el aporte marcado se refleja como un gasto derivado (`g_cad_<id>`) y el pozo del turno como un ingreso derivado (`inc_cad_<id>_<pos>`); ambos idempotentes, se recalculan desde la config y se limpian solos.
+- **Módulo Cobros**: cadenas de ahorro v2 (varias cadenas, varios puestos, splits configurables, mensual/quincenal, cobro del pozo, vigencia por rango de meses) + **préstamos a familia** (hasta 5, cuota por amortización, interés mensual opcional, cada cuota pagada se registra como ingreso "Préstamos recibido").
 - **Tarjetas múltiples** con interés mensual (%) y meses para liquidar por amortización; deuda derivada de compras y abonos.
 - **Metas de ahorro múltiples** con icono, progreso y racha.
 - **Análisis** histórico con gráfico, desglose por categoría y salario congelado por mes (el histórico no se distorsiona al subir el sueldo).
