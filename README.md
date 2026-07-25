@@ -95,6 +95,11 @@ Tu perfil (salario, día de pago y **desde qué mes llevas la cartera**), tus **
 
 ## Lo importante que debes saber
 
+### 📅 Anticipado, en curso o vencido
+En **Ajustes → Mi perfil** dices cuándo sale la plata de los gastos del mes que ves: **anticipado** (en julio pagas lo de agosto), **en curso** (la plata que te llega en agosto la gastas en agosto) o **vencido** (a comienzos de agosto pagas lo de julio). Solo cambia las guías y las fechas que te muestra, no recalcula tus montos.
+
+La **cadena tiene su propio modo** (⚙️ de la cadena), porque puede ir desfasada de tu nómina: si es *anticipado*, los aportes que ves en agosto los entregas en julio y las filas te muestran fechas de julio.
+
 ### 📅 El mes que ves es el mes que la plata *cubre*
 La nómina que te pagan, por ejemplo, el 25, normalmente cubre el **mes siguiente**. Por eso la app registra los gastos bajo el mes que **cubren**, no el día en que los pagas. La cadena de ahorro funciona igual: la pagas el mes anterior al que cubre. Esto la app te lo explica desde el primer uso.
 

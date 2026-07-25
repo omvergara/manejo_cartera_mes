@@ -17,6 +17,8 @@ PWA de finanzas personales en UN SOLO archivo (`index.html`). HTML + CSS + JS va
 **Mapa de claves localStorage (NO cambiar nombres ni estructura sin migración):**
 ```
 app_cfg              {nombre, neto, tipoNomina:'mensual'|'quincenal', nominaDia | q1,q2, modoMes, inicioY, inicioM}
+                     · modoMes: 'anticipado' (default) | 'curso' | 'vencido' — en qué mes SALE la plata de los
+                       gastos del mes que ves. Es guía/etiquetas (mesPago()/frasePago()), no recalcula montos.
                      · inicioY/inicioM = mes en que ARRANCA la operación de la cartera (inicioOp()).
                        Antes de ese mes: NETOm()=0, no se puede navegar (navFloor) y no entra al histórico de Análisis.
                        Default si falta (usuarios viejos): earliestRealDataMonth() (mes más antiguo con gastos>0 o ingresos).
@@ -40,10 +42,15 @@ app_inc_{YYYY}_{M}   ingresos extra del mes [{id,desc,monto,cat}]  ← cat: Trab
                        Para corregir el monto real se usa posicion.montoPozo en la config de la cadena
 app_cd_{YYYY}_{M}    estado cadena del mes (v2): {v:2, paid:{'<cadId>|<posId>|d<dia>':true}, cobros:{}}
                      · NO congela montos: las filas se derivan de app_ccfg cada vez (getCPagos)
-app_ccfg             cadenas (v2): {v:2, cadenas:[{id,nombre,valorCuota,frecuencia,dias:[],diaPago,
+app_ccfg             cadenas (v2): {v:2, cadenas:[{id,nombre,valorCuota,frecuencia,dias:[],diaPago,modoPago,
                      puestosGrupo,salenPorPeriodo,mesInicio,anioInicio,
                      posiciones:[{id,tipo:'propio'|'compartido',miSplit,conQuien,turnoMes,montoPozo}]}]}
                      · formato viejo {puestos,valor,d1,d2,dPago,t1,t2} se migra solo (migrarCadena)
+                     · modoPago (cadModo/cadMesCobro): 'anticipado' | 'curso' (default si falta) | 'vencido' —
+                       en qué mes CAEN los días de cobro respecto al mes que cubren (−1 / 0 / +1). Cambia el chip de
+                       fecha de cada aporte y la frase del encabezado; NO mueve el mes del gasto derivado ni del pozo
+                       (siguen en el mes de la cadena, según la convención de mes de la app). diaPago quedó solo como
+                       referencia de "día en que tú entregas tu cuota".
                      · VIGENCIA: la cadena solo corre entre mesInicio/anioInicio y cadFin() (= inicio + cadDuracion − 1).
                        Fuera de ese rango getCPagos() no devuelve filas (no se puede marcar nada) y cadenaBody explica por qué.
                        El timeline muestra qué puestos del GRUPO cobran cada mes (cadPuestosDeMes), no solo los del usuario.
