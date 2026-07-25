@@ -16,14 +16,21 @@ PWA de finanzas personales en UN SOLO archivo (`index.html`). HTML + CSS + JS va
 
 **Mapa de claves localStorage (NO cambiar nombres ni estructura sin migración):**
 ```
-app_cfg              {nombre, neto, tipoNomina:'mensual'|'quincenal', nominaDia | q1,q2}
+app_cfg              {nombre, neto, tipoNomina:'mensual'|'quincenal', nominaDia | q1,q2, modoMes, inicioY, inicioM}
+                     · inicioY/inicioM = mes en que ARRANCA la operación de la cartera (inicioOp()).
+                       Antes de ese mes: NETOm()=0, no se puede navegar (navFloor) y no entra al histórico de Análisis.
+                       Default si falta (usuarios viejos): earliestRealDataMonth() (mes más antiguo con gastos>0 o ingresos).
 app_{YYYY}_{M}       {gastos:[{id,name,amount,cat,paid,ahorro?,recurrente?,tarjeta?,metaId?,_tcAmt?,_metaApplied?}], neto?}  ← M 0-indexado
                      · TIPO excluyente (ogSetTipo): efectivo | ahorro (→meta) | tarjeta (compra: SUBE deuda, no toca caja) | abono (pago: BAJA deuda de g.tcId y SÍ cuenta como gasto/caja). Flags: ahorro/tarjeta/abonoTc + tcId/metaId. Marcas idempotentes _tcApplied/_abonoApplied/_metaApplied
                      · tarjeta? = pagado con tarjeta: suma a app_tc.saldo (reconcileGasto) y NO entra a la caja del mes (calcT lo salta)
                      · ahorro?+metaId? = al marcar pagado suma a esa meta de app_metas (reconcileGasto)
                      · _tcAmt/_metaApplied = marcas internas de idempotencia (no tocar)
-                     · neto? = snapshot del salario de ese mes (se congela al cambiar el sueldo; ver NETOm)
-                     · recurrente? = el gasto se arrastra a meses nuevos (ver seedGastos)
+                     · neto? = salario de ese mes: snapshot al cambiar el sueldo o EDITADO A MANO (netoManual:true).
+                       Se edita tocando el bloque "💵 Ingresos" en Gastos (openMesNeto) y admite netoNota (texto libre).
+                     · recurrente? = el gasto se arrastra a meses nuevos (ver seedGastos). Si el usuario los borró,
+                       el botón discreto al final de Gastos los recupera (recurrentesDisponibles/cargarRecurrentes)
+                     · hormiga? = gasto único "Gastos hormiga" del mes; hitems:[{id,desc,monto,fecha}] con el detalle
+                       por día (modal ov-hdet). amount/hcount se llevan incrementalmente, nunca se recalculan a ciegas
 app_inc_{YYYY}_{M}   ingresos extra del mes [{id,desc,monto,cat}]  ← cat: Trabajo adicional/Prima/Bono empresa/Obsequio/Otros
 app_cd_{YYYY}_{M}    estado cadena del mes (v2): {v:2, paid:{'<cadId>|<posId>|d<dia>':true}, cobros:{}}
                      · NO congela montos: las filas se derivan de app_ccfg cada vez (getCPagos)
@@ -31,6 +38,13 @@ app_ccfg             cadenas (v2): {v:2, cadenas:[{id,nombre,valorCuota,frecuenc
                      puestosGrupo,salenPorPeriodo,mesInicio,anioInicio,
                      posiciones:[{id,tipo:'propio'|'compartido',miSplit,conQuien,turnoMes,montoPozo}]}]}
                      · formato viejo {puestos,valor,d1,d2,dPago,t1,t2} se migra solo (migrarCadena)
+                     · VIGENCIA: la cadena solo corre entre mesInicio/anioInicio y cadFin() (= inicio + cadDuracion − 1).
+                       Fuera de ese rango getCPagos() no devuelve filas (no se puede marcar nada) y cadenaBody explica por qué.
+                       El timeline muestra qué puestos del GRUPO cobran cada mes (cadPuestosDeMes), no solo los del usuario.
+app_prestamos        préstamos que YO hago: [{id,persona,capital,meses,interes,mesIni,anioIni,cuotas:{n:{paid,y,m,incId,monto}}}]
+                     · mesIni/anioIni = mes del préstamo; la cuota n se espera en inicio+(n−1) (prestamoCuotaMes).
+                       Solo se puede chulear una cuota exigible (su mes ≤ mes visible); antes del inicio el préstamo no se muestra.
+                       Legacy sin mesIni: se deduce de la cuota pagada más antigua (prestamoInicio) y se congela al guardar.
 app_mrc              lista mercado [{id,name,icon,cat,on,price?}] · gM() merge no-destructivo con DM. Al guardar (💾) crea un gasto "Mercado" con el total de precios y pregunta efectivo/tarjeta (saveMrcGasto → reconcileGasto)
 app_tcs              tarjetas MÚLTIPLES: [{id,nombre,base,cuota,tasa}] (migra de app_tc; saldo viejo→base). tasa = % MENSUAL.
                      · DEUDA DERIVADA (tcDeuda): base + compras − abonos de gastos (no se muta ni se pisa al editar). gasto.tcId elige tarjeta.
@@ -64,7 +78,8 @@ cartera_prerestore   (sin prefijo app_) snapshot de seguridad antes de un restor
 - Getters/setters de storage: `gD()/sD()` (mes actual), `gM()/sM()` (mercado), `gTc()/sTc()`, `gMeta()/sMeta()`, `getCadenas()/setCadenas()` (cadenas v2), `gInc()/sInc()` (ingresos extra), `gCfgApp()/sCfgApp()` (config usuario). Helpers cadena: `getCPagos()` (filas derivadas del mes), `cobrosMes()` (pozos del mes), `cadDuracion/cadIdxMes/cadPozo`. Salario por mes: `NETOm(y,m)`. Deuda: `deudaInfo()/tasaMensualDe()` (tasa MENSUAL). Metas: `gMetas()/sMetas()/totalAhorrado()/ensureMeta()`. Ahorro por mes: `addAhorroMes()/savMes()/rachaAhorro()`. La edición de tarjeta y metas vive en **Ajustes** (rAjustes); `rMas` (Análisis) es solo lectura.
 - Modales: overlays con ids `ov-*`, abrir/cerrar con `openOv(id)/closeOv(id)`
 - Botones flotantes (FAB): se crean dinámicamente en cada render y se destruyen en `renderAll()` — son circulares minimalistas (54px, solo icono)
-- Navegación de meses: limitada entre el mes más antiguo con datos (`earliestDataMonth()`) y mes actual+1; `goToday()` vuelve al actual
+- Navegación de meses: limitada entre el mes de inicio de operación (`navFloor()` ← `inicioOp()`) y **mes actual+2**; `goToday()` vuelve al actual. Además de los botones ‹ › se puede **deslizar horizontalmente** (initSwipeMes: solo en inicio/gastos/cadena, ignora modales y gestos que arranquen sobre un control)
+- `showConfirm(t,s,cb,okLabel)`: sin `okLabel` el botón dice "Eliminar" en rojo; con `okLabel` es un botón azul de acción normal
 
 ## Dominio del negocio (contexto colombiano)
 - **Prima semestral**: por ley, junio y diciembre, ≈15 días de salario (NETO/2 como estimación)

@@ -48,20 +48,26 @@ Tu foto del mes. El número grande es **lo que te queda libre**. También ves cu
 La lista de todo lo que pagas en el mes. Cada gasto se **chulea** cuando lo pagas. Aquí puedes:
 - Marcar un gasto como **recurrente** 🔁 para que aparezca solo cada mes.
 - Elegir cómo lo pagas: **efectivo**, **ahorro** (suma a una meta), **compra con tarjeta** (sube tu deuda) o **pago de tarjeta** (baja la deuda).
-- Sumar **gastos hormiga** 🐜 (el tinto, el cigarrillo, el bus): pequeños gastos del día que se juntan en uno solo.
+- Sumar **gastos hormiga** 🐜 (el tinto, el cigarrillo, el bus): cada uno se guarda **con su fecha** pero todos se juntan en **un solo gasto** del mes. Toca ese gasto y ves el **detalle día por día** (y puedes borrar uno suelto).
 - Registrar **ingresos extra** 💵 (un freelance, una venta, la prima).
+- Tocar el bloque **💵 Ingresos** para **editar a mano el ingreso base de ese mes** y dejarle una **nota** (ej: "entré el 10, mes incompleto"). Solo afecta a ese mes; tu salario configurado no se toca.
+- Si borraste tus recurrentes de un mes, al final de la lista aparece un botón discreto **🔁 Cargar gastos recurrentes** para traerlos de vuelta.
+
+> Puedes cambiar de mes con las flechas ‹ › **o deslizando la pantalla de lado**. Se puede planear hasta **2 meses adelante**.
 
 ### 🤝 Cobros — *la plata que entra o que te deben*
 Un módulo con **dos pestañas**:
 
-- **🔗 Cadena** — tu cadena de ahorro (san). Marcas cada cuota quincenal o mensual, ves cuánto llevas y un **timeline** que te dice en qué mes te toca **cobrar el pozo**. Soporta tener **un puesto propio y uno compartido** a la vez (cada turno aparece con su monto).
-- **🤝 Préstamos** — el dinero que **tú le prestas a la familia**. Configuras hasta **5 préstamos** (a quién, monto, en cuántas cuotas, y un interés mensual opcional). La app calcula la **cuota** y tú **chuleas cada pago** que te hacen. Cada cuota que recibes entra automáticamente como un **ingreso extra "Préstamos recibido"** del mes, y ves en todo momento cuánto te falta por cobrar.
+- **🔗 Cadena** — tu cadena de ahorro (san). Marcas cada cuota quincenal o mensual, ves cuánto llevas y un **timeline** que te dice en qué mes te toca **cobrar el pozo** y **qué puestos del grupo cobran** los demás meses. Soporta tener **un puesto propio y uno compartido** a la vez (cada turno aparece con su monto). La cadena **solo se puede marcar dentro de su vigencia** (de su mes de inicio hasta el último mes): en meses anteriores o posteriores te dice por qué no hay aportes.
+- **🤝 Préstamos** — el dinero que **tú le prestas a la familia**. Configuras hasta **5 préstamos** (a quién, monto, **en qué mes prestaste**, en cuántas cuotas, y un interés mensual opcional). La app calcula la **cuota**, le pone a cada una **el mes en que se cobra** y tú **chuleas cada pago** que te hacen (las cuotas de meses que aún no llegan quedan bloqueadas, y en los meses anteriores al préstamo no aparece nada). Cada cuota que recibes entra automáticamente como un **ingreso extra "Préstamos recibido"** del mes, y ves en todo momento cuánto te falta por cobrar.
 
 ### 🛒 Mercado
 Tu lista de mercado por categorías (cocina, proteína, aseo…). Activas lo que vas a comprar, le pones precio, y al terminar la guardas como **un gasto del mes** (eliges si lo pagaste en efectivo o con tarjeta).
 
 ### ⚙️ Ajustes
-Tu perfil (salario y día de pago), tus **tarjetas** y **metas de ahorro**, los respaldos (exportar / importar), la conexión con **Google Drive**, el **PIN** de bloqueo y el **modo oscuro**.
+Tu perfil (salario, día de pago y **desde qué mes llevas la cartera**), tus **tarjetas** y **metas de ahorro**, los respaldos (exportar / importar), la conexión con **Google Drive**, el **PIN** de bloqueo y el **modo oscuro**.
+
+> **¿Desde qué mes llevas la cartera?** Si empezaste a usar la app en junio, ponlo ahí: los meses anteriores quedan en **$0** y desaparecen de la navegación y del análisis, para que no te aparezca un "ingreso" fantasma en meses que nunca llevaste. No se borra nada: si mueves la fecha hacia atrás, vuelven a salir.
 
 > El **Análisis** (historial de meses, gastos por categoría, metas y deuda) lo abres desde el botón **"Ver análisis completo"** en Inicio.
 
@@ -133,8 +139,10 @@ Como todo vive en el navegador, si borras el caché de Safari o cambias de telé
 
 - **Un solo archivo** `index.html`: HTML + CSS + JS vanilla, **cero dependencias de build**, cero npm.
 - **Separación absoluta código/datos**: el código es 100 % genérico y nunca contiene datos personales; los datos viven en `localStorage` con prefijo `app_`.
-- **Gastos** con tipo excluyente (efectivo / ahorro→meta / compra TC / pago TC), recurrentes, gastos hormiga e ingresos extra.
-- **Convención de mes** = el mes que el dinero cubre (no el de pago).
+- **Gastos** con tipo excluyente (efectivo / ahorro→meta / compra TC / pago TC), recurrentes (con recarga manual), gastos hormiga con detalle fechado e ingresos extra.
+- **Convención de mes** = el mes que el dinero cubre (no el de pago). **Mes de inicio de operación** configurable: antes de él el ingreso base es 0 y no hay navegación ni histórico.
+- **Ingreso base editable por mes** con nota libre (`app_{Y}_{M}.neto/netoManual/netoNota`), sin tocar el salario global.
+- **Navegación por mes** con flechas o *swipe* horizontal, hasta 2 meses en el futuro.
 - **Módulo Cobros**: cadenas de ahorro v2 (varias cadenas, varios puestos, splits configurables, mensual/quincenal, cobro del pozo) + **préstamos a familia** (hasta 5, cuota por amortización, interés mensual opcional, cada cuota pagada se registra como ingreso "Préstamos recibido").
 - **Tarjetas múltiples** con interés mensual (%) y meses para liquidar por amortización; deuda derivada de compras y abonos.
 - **Metas de ahorro múltiples** con icono, progreso y racha.
@@ -145,12 +153,12 @@ Como todo vive en el navegador, si borras el caché de Safari o cambias de telé
 ### Modelo de datos (`localStorage`, prefijo `app_`)
 
 ```
-app_cfg              → nombre, salario neto, tipo de nómina y día(s)
-app_{YYYY}_{M}       → gastos del mes (+ snapshot del salario de ese mes). M es 0-indexado
+app_cfg              → nombre, salario neto, tipo de nómina y día(s), mes de inicio de la cartera
+app_{YYYY}_{M}       → gastos del mes (+ salario de ese mes y nota opcional). M es 0-indexado
 app_inc_{YYYY}_{M}   → ingresos extra del mes (incl. categoría "Préstamos recibido")
 app_cd_{YYYY}_{M}    → estado de pagos de cadena del mes (v2)
 app_ccfg             → cadenas (v2: array con posiciones, splits, frecuencia)
-app_prestamos        → préstamos a familia [{id,persona,capital,meses,interes,cuotas}]
+app_prestamos        → préstamos a familia [{id,persona,capital,meses,interes,mesIni,anioIni,cuotas}]
 app_mrc              → lista de mercado
 app_tcs              → tarjetas múltiples [{id,nombre,base,cuota,tasa}] (tasa = % mensual)
 app_metas            → metas de ahorro [{id,nombre,icono,total,meta}]
