@@ -113,7 +113,7 @@ cartera_prerestore   (sin prefijo app_) snapshot de seguridad antes de un restor
 - "Quedar a paz" = liquidar una deuda
 
 ## Testing manual mínimo tras cualquier cambio
-1. Abrir en navegador → onboarding aparece solo si no hay `app_cfg`
+1. Abrir en navegador → el asistente aparece solo si no hay `app_cfg` (probar en incógnito para no borrar datos reales)
 2. Marcar/desmarcar un gasto → totales y badges se actualizan
 3. Cambiar de mes y volver con "Hoy ↩"
 4. Exportar JSON → importarlo → datos intactos
@@ -133,4 +133,5 @@ Requieren Node 18+ y Chrome/Edge instalado. Los tres corren en headless sobre el
 ## Backlog conocido
 - Recordatorios in-app (nómina, cadena) — NO push del sistema: la app es serverless y el push real exige un backend con VAPID/web-push
 - Versión multi-usuario pública
-- Ampliar cobertura de tests (hoy hay un smoke test básico)
+- **Modo de mes = solo etiquetas.** `cfg.modoMes` y `cadena.modoPago` cambian las fechas y frases que se muestran, pero NO el mes bajo el que se guarda el gasto/ingreso (sigue mandando la convención mes-que-cubre). Si alguna vez se pide que en modo anticipado la plata se descuente de verdad del mes anterior, es un cambio profundo de la convención: hay que decidirlo explícitamente, no colarlo.
+- Ampliar cobertura: los 3 tests cubren los flujos principales, pero no mercado→gasto, Drive/import-export ni PIN.
