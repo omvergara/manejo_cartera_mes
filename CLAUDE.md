@@ -16,9 +16,11 @@ PWA de finanzas personales en UN SOLO archivo (`index.html`). HTML + CSS + JS va
 
 **Mapa de claves localStorage (NO cambiar nombres ni estructura sin migración):**
 ```
-app_cfg              {nombre, neto, tipoNomina:'mensual'|'quincenal', nominaDia | q1,q2, modoMes, inicioY, inicioM}
-                     · modoMes: 'anticipado' (default) | 'curso' | 'vencido' — en qué mes SALE la plata de los
-                       gastos del mes que ves. Es guía/etiquetas (mesPago()/frasePago()), no recalcula montos.
+app_cfg              {nombre, neto, tipoNomina:'mensual'|'quincenal', nominaDia | q1,q2, inicioY, inicioM, mods?, modoMes?}
+                     · mods? = {tc,metas,cadena,prest,mercado: bool} — módulos prendidos/apagados en Ajustes (modOn()).
+                       Si una llave falta, el módulo se prende solo cuando ya tiene datos (modDefault()).
+                     · modoMes? = LEGADO (v9). Ya no se muestra ni se lee; se conserva en usuarios viejos. saveCfg()
+                       parte de la cfg guardada para no borrar campos que el modal no edita (mods, modoMes).
                      · inicioY/inicioM = mes en que ARRANCA la operación de la cartera (inicioOp()).
                        Antes de ese mes: NETOm()=0, no se puede navegar (navFloor) y no entra al histórico de Análisis.
                        Default si falta (usuarios viejos): earliestRealDataMonth() (mes más antiguo con gastos>0 o ingresos).
@@ -46,7 +48,8 @@ app_ccfg             cadenas (v2): {v:2, cadenas:[{id,nombre,valorCuota,frecuenc
                      puestosGrupo,salenPorPeriodo,mesInicio,anioInicio,
                      posiciones:[{id,tipo:'propio'|'compartido',miSplit,conQuien,turnoMes,montoPozo}]}]}
                      · formato viejo {puestos,valor,d1,d2,dPago,t1,t2} se migra solo (migrarCadena)
-                     · modoPago (cadModo/cadMesCobro): 'anticipado' | 'curso' (default si falta) | 'vencido' —
+                     · modoPago (cadModo/cadMesCobro) — LEGADO: ya no se configura en la UI (v10). Si existe:
+                       'anticipado' | 'curso' (default si falta) | 'vencido' —
                        en qué mes CAEN los días de cobro respecto al mes que cubren (−1 / 0 / +1). Cambia el chip de
                        fecha de cada aporte y la frase del encabezado; NO mueve el mes del gasto derivado ni del pozo
                        (siguen en el mes de la cadena, según la convención de mes de la app). diaPago quedó solo como
@@ -63,7 +66,8 @@ app_tcs              tarjetas MÚLTIPLES: [{id,nombre,base,cuota,tasa}] (migra d
                      · DEUDA DERIVADA (tcDeuda): base + compras − abonos de gastos (no se muta ni se pisa al editar). gasto.tcId elige tarjeta.
                      · deudaInfo() = amortización real mes a mes (último pago parcial); interés correcto.
 app_tc               (LEGACY) tarjeta única antigua — se migra a app_tcs
-app_metas            metas de ahorro v2: [{id,nombre,icono,total,meta,plazoMeses?}] (migra de app_meta {total,metaCasa}). Se configuran en modal (ov-metas); el total sube SOLO desde gastos tipo ahorro
+app_metas            metas de ahorro v2: [{id,nombre,icono,total,meta,aporte?,plazoMeses?}] · aporte = ahorro mensual que
+                     se sugiere en Mi mes (metaAporte(): aporte, o lo que falta/plazoMeses si solo hay plazo) (migra de app_meta {total,metaCasa}). Se configuran en modal (ov-metas); el total sube SOLO desde gastos tipo ahorro
 app_sav_{Y}_{M}      (LEGACY) contador viejo de ahorro/mes — ya no se usa; savMes() se calcula de los gastos ahorro pagados del mes
 app_prima_{Y}_{M}    (LEGACY) ya no se escribe — el planificador de prima se eliminó; la prima se registra como Ingreso extra cat 'Prima'
 app_onb              estado de la tarjeta de pendientes: {hide:bool, skip:[ids]} (ver ckCard/ckItems)
@@ -78,11 +82,11 @@ cartera_prerestore   (sin prefijo app_) snapshot de seguridad antes de un restor
 **Escritura segura:** usar `safeSet(k,v)` (captura QuotaExceededError) en vez de `localStorage.setItem` directo; los setters (`sD/sCfgApp/sM/sTc/sMeta/sInc`) ya lo hacen y llaman `autoSync()`. `replaceAllData(obj)` hace restore ATÓMICO (borra claves app_ excepto el PIN, valida y escribe) — usado por import y restore de Drive.
 
 ## Configuración guiada (usuario nuevo)
-- **Asistente de 6 pasos** en el overlay `#onboarding` (perfil → modo de mes + mes de inicio → gastos fijos → tarjeta → meta → resumen). Pasos estáticos `#onb-s1..s6` que se muestran/ocultan; lógica en `onbIniciar/onbPintar/onbIr/onbGuardarPaso`.
+- **Asistente de 6 pasos** en el overlay `#onboarding` (perfil → mes de inicio → gastos fijos → tarjeta → meta → resumen). Pasos estáticos `#onb-s1..s6` que se muestran/ocultan; lógica en `onbIniciar/onbPintar/onbIr/onbGuardarPaso`.
   - El paso 1 **guarda el perfil al avanzar**: si el usuario abandona a medias no queda un estado roto (y `checkOnboarding()` ya no vuelve a abrirlo).
   - "Después" (`onbIr(1,true)`) salta el paso sin guardar. El paso 1 no se puede saltar (salario obligatorio).
   - La plantilla de gastos fijos del paso 3 es `DG` (única fuente). Por eso `seedGastos()` devuelve **vacío** cuando no hay ningún mes previo: si no, el usuario nuevo arrancaba con 5 filas en $0.
-- **Tarjeta "Termina de configurar"** en Inicio (`ckCard()/ckItems()`): detecta sola lo que falta, cada fila abre su modal, `✕` marca "no me aplica" y desaparece al completarse. Estado en `app_onb` = `{hide, skip:[ids]}`.
+- **Tarjeta "Termina de configurar"** en Mi mes (`ckCard()/ckItems()`): lista SOLO lo que falta (lo hecho no ocupa espacio), cada fila abre su configuración, "No aplica" la descarta y la tarjeta desaparece al completarse. Un módulo apagado en Ajustes no se pide. Estado en `app_onb` = `{hide, skip:[ids]}`.
 
 ## Reglas de oro
 1. **NUNCA** cambiar el prefijo `app_` ni renombrar claves existentes — rompería los datos de usuarios activos. Si una migración es inevitable, escribir código que lea la clave vieja y escriba la nueva.
@@ -98,12 +102,16 @@ cartera_prerestore   (sin prefijo app_) snapshot de seguridad antes de un restor
 7. Confirmación antes de cualquier acción destructiva (ya existe `showConfirm()` — usarla).
 
 ## Convenciones del código
-- Funciones de render por pantalla: `rInicio()`, `rGastos()`, `rCadena()`, `rMercado()`, `rMas()` (análisis), `rAjustes()`
-- `renderAll()` redibuja la pantalla activa y los badges; llamarla tras cualquier mutación de estado
-- Getters/setters de storage: `gD()/sD()` (mes actual), `gM()/sM()` (mercado), `gTc()/sTc()`, `gMeta()/sMeta()`, `getCadenas()/setCadenas()` (cadenas v2), `gInc()/sInc()` (ingresos extra), `gCfgApp()/sCfgApp()` (config usuario). Helpers cadena: `getCPagos()` (filas derivadas del mes), `cobrosMes()` (pozos del mes), `cadDuracion/cadIdxMes/cadPozo`. Salario por mes: `NETOm(y,m)`. Deuda: `deudaInfo()/tasaMensualDe()` (tasa MENSUAL). Metas: `gMetas()/sMetas()/totalAhorrado()/ensureMeta()`. Ahorro por mes: `addAhorroMes()/savMes()/rachaAhorro()`. La edición de tarjeta y metas vive en **Ajustes** (rAjustes); `rMas` (Análisis) es solo lectura.
+- **Pantallas (v10):** 3 pestañas — `mes` (`rMes()`), `resumen` (`rResumen()`), `ajustes` (`rAjustes()`) — y 2 sub-pantallas con botón ‹ — `cadena` (`rCadena()`: cadena y préstamos) y `mercado` (`rMercado()`). `goTo()` acepta los nombres viejos como alias (inicio/gastos→mes, mas→resumen).
+- **Una sola cuenta:** `mesModelo()` arma TODO lo del mes visible y es la única fuente de los números: gastos reales + aportes de cadena (una fila por cadena; el gasto derivado `g_cad_` no se lista aparte) + **filas sugeridas** (cuota de cada tarjeta y ahorro de cada meta, solo en el mes actual y futuros, y solo si no hay ya un pago/ahorro de esa tarjeta/meta en el mes). Cuadre: Entró − Ya pagaste = Tienes hoy; − Falta por pagar = **Te queda**. Las compras con tarjeta NO salen del mes (van en su sección). Las cuotas de préstamos van en "Por recibir" y no suman hasta marcarlas. `mesModeloDe(y,m)` da la misma cuenta para otro mes (lo usa Resumen, así ambos números coinciden).
+- Marcar una fila sugerida (`pagarSugerido`) la vuelve un gasto real pagado (Pago TC o Ahorro con meta); tocarla (`abrirSugerido`) abre el formulario prellenado para ajustar el monto.
+- **Formulario único `ov-mov`** (`openMov(kind,id,pre)` / `saveMov()` / `delMov()`): "Salió" o "Entró". Los 4 tipos viejos se expresan así: categoría normal + efectivo = efectivo; categoría normal + una tarjeta = compra TC; categoría "Ahorro" = ahorro (meta opcional); categoría "Pago de tarjeta" (`__abono`) = Pago TC. Los flags guardados (`ahorro/tarjeta/abonoTc/tcId/metaId`) son los mismos de siempre. `openAdd/openEdit/openAddIngreso/openEditIngreso` son atajos.
+- **Seguridad:** las filas de Mi mes y los chips del formulario llevan el id/valor en `data-*` y un solo listener los resuelve; NO metas ids o datos del usuario dentro de `onclick="...('${id}')"` (un respaldo importado manipulado podría inyectar JS: `esc()` no protege ese contexto). Tampoco uses `new Function`/`eval`: la CSP no permite `unsafe-eval`.
+- `renderAll()` redibuja la pantalla activa; llamarla tras cualquier mutación de estado
+- Getters/setters de storage: `gD()/sD()` (mes actual), `gM()/sM()` (mercado), `gTc()/sTc()`, `gMeta()/sMeta()`, `getCadenas()/setCadenas()` (cadenas v2), `gInc()/sInc()` (ingresos extra), `gCfgApp()/sCfgApp()` (config usuario). Helpers cadena: `getCPagos()` (filas derivadas del mes), `cobrosMes()` (pozos del mes), `cadDuracion/cadIdxMes/cadPozo`. Salario por mes: `NETOm(y,m)`. Deuda: `deudaInfo()/tasaMensualDe()` (tasa MENSUAL). Metas: `gMetas()/sMetas()/totalAhorrado()/ensureMeta()`. Ahorro por mes: `addAhorroMes()/savMes()/rachaAhorro()`. La edición de tarjeta y metas vive en modales que se abren desde **Ajustes** (rAjustes); `rResumen` es solo lectura.
 - Modales: overlays con ids `ov-*`, abrir/cerrar con `openOv(id)/closeOv(id)`
-- Botones flotantes (FAB): se crean dinámicamente en cada render y se destruyen en `renderAll()` — son circulares minimalistas (54px, solo icono)
-- Navegación de meses: limitada entre el mes de inicio de operación (`navFloor()` ← `inicioOp()`) y **mes actual+2**; `goToday()` vuelve al actual. Además de los botones ‹ › se puede **deslizar horizontalmente** (initSwipeMes: solo en inicio/gastos/cadena, ignora modales y gestos que arranquen sobre un control)
+- Botones flotantes (FAB): se crean dinámicamente en cada render y se destruyen en `renderAll()` — 58px, solo icono SVG: el + de Mi mes abre `ov-mov`; el ✓ verde de Mercado guarda la lista como gasto
+- Navegación de meses: limitada entre el mes de inicio de operación (`navFloor()` ← `inicioOp()`) y **mes actual+2**; `goToday()` vuelve al actual. Además de los botones ‹ › se puede **deslizar horizontalmente** (initSwipeMes: solo en mes/resumen/cadena, ignora modales y gestos que arranquen sobre un control)
 - `showConfirm(t,s,cb,okLabel)`: sin `okLabel` el botón dice "Eliminar" en rojo; con `okLabel` es un botón azul de acción normal
 
 ## Dominio del negocio (contexto colombiano)
@@ -114,15 +122,15 @@ cartera_prerestore   (sin prefijo app_) snapshot de seguridad antes de un restor
 
 ## Testing manual mínimo tras cualquier cambio
 1. Abrir en navegador → el asistente aparece solo si no hay `app_cfg` (probar en incógnito para no borrar datos reales)
-2. Marcar/desmarcar un gasto → totales y badges se actualizan
-3. Cambiar de mes y volver con "Hoy ↩"
+2. Marcar/desmarcar un gasto → la cuenta de Mi mes cuadra (Entró − Ya pagaste − Falta = Te queda)
+3. Cambiar de mes y volver con "Volver a <mes>"
 4. Exportar JSON → importarlo → datos intactos
 5. Verificar que no haya errores en consola
 
 ## Tests automatizados
 Requieren Node 18+ y Chrome/Edge instalado. Los tres corren en headless sobre el `index.html` real.
 - `node test/smoke.mjs` — el JS embebido compila y el nombre del usuario se escapa (anti-XSS). Sale con código 0/1 (apto para CI).
-- `node test/funcional.mjs` — siembra un escenario (cartera desde junio 2026, cadena, préstamos, hormigas) y ejercita pantallas, modales, navegación, swipe, modos de mes y los derivados de la cadena. Imprime `OUT` (aserciones legibles) y `ERRS`: **ERRS debe ser 0**.
+- `node test/funcional.mjs` — siembra un escenario (cartera desde junio 2026, cadena, préstamos, hormigas) y verifica con aserciones `A()` (una falla cuenta en ERRS) la cuenta de Mi mes, el formulario único, compras/pagos con tarjeta, XSS por ids raros, cadena↔caja, préstamos, Resumen = Mi mes, módulos, swipe y filas sugeridas. **ERRS debe ser 0**. Las filas sugeridas se prueban en el mes actual REAL del reloj.
 - `node test/onboarding.mjs` — arranca con localStorage vacío y recorre el asistente de 6 pasos + la tarjeta de pendientes. Mismo formato: `ERRS` debe ser 0.
 
 ⚠️ Al escribir estos tests, el harness va dentro de un template literal de JS: **no uses expresiones regulares con `\`** (`\d`, `\w`, `\/` pierden la barra al interpolarse). Usa `new RegExp('...')` con clases explícitas (`[0-9]`, `[A-Za-z]`) o `.includes()`.
@@ -133,5 +141,7 @@ Requieren Node 18+ y Chrome/Edge instalado. Los tres corren en headless sobre el
 ## Backlog conocido
 - Recordatorios in-app (nómina, cadena) — NO push del sistema: la app es serverless y el push real exige un backend con VAPID/web-push
 - Versión multi-usuario pública
-- **Modo de mes = solo etiquetas.** `cfg.modoMes` y `cadena.modoPago` cambian las fechas y frases que se muestran, pero NO el mes bajo el que se guarda el gasto/ingreso (sigue mandando la convención mes-que-cubre). Si alguna vez se pide que en modo anticipado la plata se descuente de verdad del mes anterior, es un cambio profundo de la convención: hay que decidirlo explícitamente, no colarlo.
+- **Modo de mes retirado (v10).** Solo cambiaba etiquetas y confundía. Manda la convención mes-que-cubre. Si alguna vez se pide que la plata se descuente de verdad del mes anterior, es un cambio profundo: decidirlo explícitamente.
+- Los modales de tarjetas, metas, cadena, préstamos y mercado todavía arman `onclick` con ids dentro (patrón viejo). Migrarlos a `data-*` como Mi mes.
+- Las capturas de `docs/` y el README son de la versión anterior (v9): regenerarlas.
 - Ampliar cobertura: los 3 tests cubren los flujos principales, pero no mercado→gasto, Drive/import-export ni PIN.

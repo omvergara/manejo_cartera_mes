@@ -67,7 +67,7 @@ function findBrowser() {
     } else if (/<div class="hero-lbl">Hola, <b><b>XSS<\/b>/.test(dom)) {
       fail('VULNERABLE: el nombre se inyecta como HTML vivo (XSS no escapado)');
     } else {
-      fail('No se pudo confirmar el escape (revisar render). ¿Cambio el saludo de Inicio?');
+      fail('No se pudo confirmar el escape (revisar render). ¿Cambio el saludo de Mi mes?');
     }
   } catch (e) {
     fail('No se pudo renderizar en el navegador: ' + e.message);

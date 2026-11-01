@@ -1,5 +1,5 @@
 // Prueba funcional: siembra un escenario realista (cartera desde junio 2026) y ejercita
-// pantallas, modales, navegacion, swipe y los derivados de la cadena en Chrome headless,
+// la cuenta de Mi mes, el formulario unico, cadena, prestamos, resumen, modulos, swipe y filas sugeridas,
 // capturando cualquier error de JS.
 //
 // Uso:  node test/funcional.mjs
@@ -42,145 +42,193 @@ window.addEventListener('unhandledrejection',e=>ERRS.push('rejection: '+e.reason
 const _ce=console.error;console.error=(...a)=>{ERRS.push('console.error: '+a.join(' '));_ce(...a);};
 window.alert=(m)=>OUT.push('ALERT: '+m);
 function T(label,fn){try{fn();OUT.push('ok: '+label);}catch(e){ERRS.push('THROW en '+label+': '+e.message);}}
-function has(id){const el=document.getElementById(id);return el&&el.innerHTML.length>0;}
+// A = asercion: si falla cuenta como error (ERRS debe quedar en 0).
+function A(label,cond,extra){if(cond)OUT.push('PASA: '+label);else ERRS.push('FALLA: '+label+(extra!==undefined?' -> '+extra:''));}
+const H=id=>document.getElementById(id).innerHTML;
+const gMes=(y,m)=>(JSON.parse(localStorage.getItem('app_'+y+'_'+m)||'{"gastos":[]}').gastos);
+function clickRow(k,id){const el=document.querySelector('#s-mes .row[data-k="'+k+'"][data-id="'+id+'"]');if(!el)throw new Error('no hay fila '+k+'/'+id);el.click();}
+function clickChk(k,id){const el=document.querySelector('#s-mes .row[data-k="'+k+'"][data-id="'+id+'"] .chk');if(!el)throw new Error('no hay check '+k+'/'+id);el.click();}
 
-// Mes visible = julio 2026 (mes "actual" simulado por la app es la fecha real del sistema,
-// asi que forzamos curY/curM y renderizamos a mano).
-T('inicio jul',()=>{curY=2026;curM=6;curScreen='inicio';renderAll();});
-T('gastos jul',()=>{goTo('gastos');});
-OUT.push('gastos tiene boton recurrentes: '+/Cargar \\d+ gasto/.test(document.getElementById('s-gastos').innerHTML));
-OUT.push('gastos muestra nota manual: '+document.getElementById('s-gastos').innerHTML.includes('Ingreso base editado'));
-T('openMesNeto',()=>{openMesNeto();});
-OUT.push('mi-neto value='+document.getElementById('mi-neto').value);
-T('closeMesNeto',()=>closeOv('ov-mesing'));
+// ── MI MES: la cuenta cuadra ───────────────────────────────
+// Junio 2026 (mes pasado: sin filas sugeridas). Entró 5.000.000 + 400.000.
+// Pagado: arriendo 1.200.000 + cadena manual 300.000 + hormiga 14.000 = 1.514.000.
+// Falta: servicios 250.000 + aportes de la cadena 450.000 (2x150.000 propio + 2x75.000 compartido) = 700.000.
+T('mi mes junio',()=>{curY=2026;curM=5;curScreen='mes';renderAll();});
+let M=mesModelo();
+A('entro junio = 5.400.000',M.entro===5400000,M.entro);
+A('ya pagaste junio = 1.514.000',M.pagado===1514000,M.pagado);
+A('falta junio = 700.000 (incluye la cadena aunque no este marcada)',M.falta===700000,M.falta);
+A('tienes hoy = entro - pagado',M.tienes===M.entro-M.pagado);
+A('te queda = 3.186.000',M.queda===3186000,M.queda);
+A('la tarjeta muestra el numero grande',H('s-mes').includes(fmt(3186000)));
+A('mes pasado: sin filas sugeridas',!M.salen.some(r=>r.sug));
+A('cadena aparece una sola vez como fila',(H('s-mes').split('Cadena · Cadena oficina').length-1)===1);
+A('el saludo usa el nombre',H('s-mes').includes('Hola, Mau'));
+
+// ── INGRESO BASE / RECURRENTES / HORMIGA ──
+T('julio',()=>{curY=2026;curM=6;renderAll();});
+A('julio muestra salario editado a mano',H('s-mes').includes('Editado a mano'));
+A('julio entro = 3.200.000 (neto manual)',mesModelo().entro===3200000,mesModelo().entro);
+T('openMesNeto desde la fila Salario',()=>{clickRow('neto','neto');});
+A('modal de ingreso del mes trae 3.200.000',document.getElementById('mi-neto').value==='3200000');
+T('cerrar',()=>closeOv('ov-mesing'));
+A('boton para cargar recurrentes',H('s-mes').includes('Cargar 1 gasto'));
 T('cargarRecurrentes+confirm',()=>{cargarRecurrentes();document.getElementById('cok').click();});
-OUT.push('julio gastos ahora: '+JSON.parse(localStorage.getItem('app_2026_6')).gastos.map(g=>g.name).join('|'));
-T('junio hormiga detalle',()=>{curY=2026;curM=5;renderAll();openHormigaDet();});
-OUT.push('hdet sub='+document.getElementById('hdet-sub').textContent);
-OUT.push('hdet body tiene fechas: '+document.getElementById('hdet-body').innerHTML.includes('jun'));
-OUT.push('hdet body tiene sin fecha: '+document.getElementById('hdet-body').innerHTML.includes('sin fecha'));
+A('julio recupera Servicios',gMes(2026,6).some(g=>g.name==='Servicios'));
+T('junio hormiga detalle',()=>{curY=2026;curM=5;renderAll();clickRow('g','g_hormiga');});
+A('detalle hormiga abierto',document.getElementById('ov-hdet').classList.contains('open'));
+A('detalle hormiga con fechas',H('hdet-body').includes('jun')&&H('hdet-body').includes('sin fecha'));
 T('borrar item hormiga',()=>{hdelItem(0);document.getElementById('cok').click();});
-OUT.push('hormiga tras borrar: '+JSON.stringify((JSON.parse(localStorage.getItem('app_2026_5')).gastos.find(g=>g.id==='g_hormiga')||{}).amount));
+A('hormiga resta el item',(gMes(2026,5).find(g=>g.id==='g_hormiga')||{}).amount===11000,(gMes(2026,5).find(g=>g.id==='g_hormiga')||{}).amount);
 T('cerrar hdet',()=>closeOv('ov-hdet'));
 
-// CADENA: junio 2026 = mes 1 (vigente), mayo 2026 = fuera de rango
-T('cobros jun',()=>{goTo('cadena');});
-OUT.push('jun cadena filas marcables: '+getCPagos().length);
-OUT.push('jun timeline puestos: '+/puestos 1–2/.test(document.getElementById('s-cadena').innerHTML));
-OUT.push('jun otro integrante: '+document.getElementById('s-cadena').innerHTML.includes('otro integrante'));
-T('cobros may (fuera de rango)',()=>{curY=2026;curM=4;renderAll();});
-OUT.push('may cadena filas marcables: '+getCPagos().length+' (debe ser 0)');
-OUT.push('may muestra aviso arranque: '+document.getElementById('s-cadena').innerHTML.includes('Arranca en'));
+// ── FORMULARIO UNICO (salio / entro) ──
+T('nuevo gasto en efectivo',()=>{curY=2026;curM=5;renderAll();openAdd();document.getElementById('mv-nom').value='Cine';document.getElementById('mv-mnt').value='50000';mvCat('Entretenimiento');document.getElementById('mv-paid').checked=true;saveMov();});
+let cine=gMes(2026,5).find(g=>g.name==='Cine');
+A('gasto guardado pagado y con categoria',cine&&cine.paid&&cine.cat==='Entretenimiento'&&!cine.tarjeta);
+A('suma a ya pagaste',mesModelo().pagado===1514000-3000+50000,mesModelo().pagado);
+const deudaAntes=tcDeuda(gTcs()[0]);
+T('compra con tarjeta',()=>{openAdd();document.getElementById('mv-nom').value='Zapatos';document.getElementById('mv-mnt').value='120000';mvCat('Otros');mvPay('tc1');saveMov();});
+const zap=gMes(2026,5).find(g=>g.name==='Zapatos');
+A('compra con tarjeta: marcada tarjeta y tcId',zap&&zap.tarjeta&&zap.tcId==='tc1'&&zap.paid);
+A('compra con tarjeta: NO sale de la plata del mes',!mesModelo().salen.some(r=>r.id===zap.id)&&mesModelo().tarjeta.some(r=>r.id===zap.id));
+A('compra con tarjeta: sube la deuda',tcDeuda(gTcs()[0])===deudaAntes+120000);
+T('editar el gasto (cambia monto)',()=>{clickRow('g',cine.id);document.getElementById('mv-mnt').value='60000';saveMov();});
+A('edicion guardada',gMes(2026,5).find(g=>g.id===cine.id).amount===60000);
+T('eliminar desde el formulario',()=>{openEdit(cine.id);delMov();document.getElementById('cok').click();});
+A('gasto eliminado',!gMes(2026,5).some(g=>g.id===cine.id));
+T('nuevo ingreso',()=>{openMov('ent');document.getElementById('mv-nom').value='Venta bici';document.getElementById('mv-mnt').value='300000';mvCat('Otros');saveMov();});
+A('ingreso suma a entro',mesModelo().entro===5700000,mesModelo().entro);
+T('pago de tarjeta como categoria',()=>{openAdd();document.getElementById('mv-nom').value='Abono Visa';document.getElementById('mv-mnt').value='100000';mvCat('__abono');document.getElementById('mv-tcp').value='tc1';saveMov();});
+const ab=gMes(2026,5).find(g=>g.name==='Abono Visa');
+A('pago de tarjeta: abonoTc + baja deuda',ab&&ab.abonoTc&&ab.cat==='Deuda'&&tcDeuda(gTcs()[0])===deudaAntes+120000-100000);
+// XSS: nombre con HTML y un id con comilla (como vendria de un respaldo manipulado)
+T('gasto con html e id raro',()=>{const d=gD();d.gastos.push({id:"x'y\\"z",name:'<img src=x onerror=alert(1)>',amount:1000,cat:'Otros',paid:false});sD(d);renderAll();});
+A('el nombre se escapa',H('s-mes').includes('&lt;img')&&!H('s-mes').includes('<img src=x'));
+T('tocar la fila con id raro no rompe',()=>{const el=[...document.querySelectorAll('#s-mes .row[data-k="g"]')].find(r=>r.dataset.id.indexOf("x'y")===0);if(!el)throw new Error('fila no encontrada');el.querySelector('.chk').click();});
+A('el check con id raro funciona',gMes(2026,5).find(g=>g.id.indexOf("x'y")===0).paid===true);
+T('limpiar gasto raro',()=>{const d=gD();d.gastos=d.gastos.filter(g=>g.id.indexOf("x'y")!==0);sD(d);renderAll();});
+
+// ── CADENA: pantalla, vigencia y prestamos ──
+T('cadena jun',()=>{goTo('cadena');});
+A('jun: 4 aportes marcables',getCPagos().length===4,getCPagos().length);
+A('timeline muestra puestos del grupo',H('s-cadena').includes('puestos 1–2')&&H('s-cadena').includes('otro integrante'));
+A('cadena tiene boton volver',H('s-cadena').includes('‹ Mi mes'));
+T('may (fuera de rango)',()=>{curY=2026;curM=4;renderAll();});
+A('mayo: 0 aportes y aviso',getCPagos().length===0&&H('s-cadena').includes('Arranca en'));
 T('prestamos may',()=>{setCobTab('prestamos');});
-OUT.push('may prestamo oculto: '+document.getElementById('s-cadena').innerHTML.includes('todavía no existía'));
+A('prestamo oculto antes de existir',H('s-cadena').includes('todavía no existía'));
 T('prestamos jun',()=>{curY=2026;curM=5;renderAll();});
-const pj=document.getElementById('s-cadena').innerHTML;
-OUT.push('jun prestamo cuota1 este mes: '+pj.includes('Este mes'));
-OUT.push('jun cuotas futuras bloqueadas: '+(pj.match(/cursor:default/g)||[]).length);
+A('cuota 1 este mes',H('s-cadena').includes('Este mes'));
 T('config prestamo',()=>{openPrestConf();});
-OUT.push('pr-body tiene mes prestado: '+document.getElementById('pr-body').innerHTML.includes('En qué mes prestaste'));
+A('config prestamo pide mes',H('pr-body').includes('En qué mes prestaste'));
 T('guardar prestamo',()=>{savePrestConf();});
-OUT.push('pr2 legacy inicio: '+JSON.stringify((gPrestamos().find(p=>p.id==='pr2')||{})));
+A('prestamo legacy congela inicio',(gPrestamos().find(p=>p.id==='pr2')||{}).mesIni===5);
+T('mi mes jun: por recibir',()=>{goTo('mes');});
+A('jun muestra cuota por recibir',H('s-mes').includes('Por recibir')&&H('s-mes').includes('Hermano'));
+const entAntes=mesModelo().entro;
+T('marcar cuota recibida desde Mi mes',()=>{clickChk('prc','pr1|1');});
+A('la cuota recibida entra a Entro',mesModelo().entro===entAntes+Math.round(cuotaPrestamo(1000000,5,1)),mesModelo().entro);
+A('y sale de Por recibir',!mesModelo().recibir.some(r=>r.id==='pr1|1'));
 
-// NAVEGACION: piso = junio 2026
-T('nav abajo tope',()=>{curY=2026;curM=5;curScreen='inicio';renderAll();changeMonth(-1);});
-OUT.push('tras retroceder desde junio: '+curY+'-'+curM+' (debe ser 2026-5)');
-T('nav futuro x3',()=>{curY=2026;curM=6;changeMonth(1);changeMonth(1);changeMonth(1);});
-OUT.push('tope futuro alcanzado: '+curY+'-'+curM);
-T('NETOm antes de inicio',()=>{});
-OUT.push('NETOm may 2026 = '+NETOm(2026,4)+' (debe 0) · NETOm jul = '+NETOm(2026,6));
-T('analisis',()=>{curY=2026;curM=6;goTo('mas');});
-OUT.push('analisis sin enero: '+!/Ene/.test(document.getElementById('s-mas').innerHTML));
+// ── NAVEGACION ──
+T('nav abajo tope',()=>{curY=2026;curM=5;renderAll();changeMonth(-1);});
+A('no baja del mes de inicio',curY===2026&&curM===5,curY+'-'+curM);
+T('nav futuro x3',()=>{const h=new Date();curY=h.getFullYear();curM=h.getMonth();changeMonth(1);changeMonth(1);changeMonth(1);});
+const hh=new Date();const tope=(hh.getFullYear()*12+hh.getMonth()+2);
+A('tope futuro = mes actual + 2',curY*12+curM===tope,curY+'-'+curM);
+A('NETOm antes de inicio = 0',NETOm(2026,4)===0&&NETOm(2026,6)===3200000);
+
+// ── RESUMEN ──
+T('resumen jul',()=>{curY=2026;curM=6;goTo('resumen');});
+A('resumen responde las 3 preguntas',H('s-resumen').includes('¿Voy mejor que el mes pasado?')&&H('s-resumen').includes('¿En qué se me va la plata?')&&H('s-resumen').includes('¿Cuándo quedo a paz'));
+A('resumen sin meses antes del inicio',!H('s-resumen').includes('>Ene<')&&!H('s-resumen').includes('>May<'));
+A('resumen compara con junio',H('s-resumen').includes('que en junio'));
+A('el junio de Resumen es el mismo Te queda de Mi mes junio',H('s-resumen').includes(fmt(mesModeloDe(2026,5).queda)),fmt(mesModeloDe(2026,5).queda));
+A('resumen muestra cuando quedas a paz con la Visa',H('s-resumen').includes('quedas a paz en'));
+
+// ── AJUSTES Y MODULOS ──
 T('ajustes',()=>goTo('ajustes'));
-OUT.push('ajustes muestra desde: '+/desde Junio 2026/.test(document.getElementById('s-ajustes').innerHTML));
+A('ajustes: perfil con fecha de inicio',H('s-ajustes').includes('desde Junio 2026'));
+A('ajustes: 5 modulos con interruptor',document.querySelectorAll('#s-ajustes .swb').length===6);
+A('modulos se prenden solos si hay datos',modOn('tc')&&modOn('metas')&&modOn('cadena')&&modOn('prest'));
+T('apagar cadena',()=>{setMod('cadena',false);curY=2026;curM=5;goTo('mes');});
+A('cadena apagada: ya no hay fila de cadena',!mesModelo().salen.some(r=>r.k==='cad'));
+T('prender cadena',()=>{setMod('cadena',true);});
+A('cadena prendida: vuelve la fila',mesModelo().salen.some(r=>r.k==='cad'));
 T('config modal',()=>openCfgModal());
-OUT.push('cfg ini mes select='+document.getElementById('cfg-ini-mes').value+' anio='+document.getElementById('cfg-ini-anio').value);
+A('el modal ya no tiene modo de mes',!document.getElementById('cfg-m-ant'));
 T('guardar cfg',()=>saveCfg());
-OUT.push('cfg guardada: '+localStorage.getItem('app_cfg'));
+A('guardar perfil conserva los modulos',gCfgApp().mods&&gCfgApp().mods.cadena===true,JSON.stringify(gCfgApp().mods));
 
-// SWIPE: simula un arrastre horizontal y uno vertical sobre la pantalla de gastos
+// ── SWIPE ──
 function swipe(dx,dy){
-  const el=document.getElementById('s-gastos');
+  const el=document.getElementById('s-mes');
   const mk=(type,x,y)=>{const t=new Touch({identifier:1,target:el,clientX:x,clientY:y});
     return new TouchEvent(type,{touches:type==='touchend'?[]:[t],changedTouches:[t],bubbles:true,cancelable:true});};
   el.dispatchEvent(mk('touchstart',200,300));
   el.dispatchEvent(mk('touchend',200+dx,300+dy));
 }
-T('swipe izq (mes+1)',()=>{curY=2026;curM=5;goTo('gastos');swipe(-140,10);});
-OUT.push('tras swipe izq: '+curY+'-'+curM+' (esperado 2026-6)');
+T('swipe izq (mes+1)',()=>{curY=2026;curM=5;goTo('mes');swipe(-140,10);});
+A('swipe izq avanza',curY===2026&&curM===6);
 T('swipe der (mes-1)',()=>{swipe(140,5);});
-OUT.push('tras swipe der: '+curY+'-'+curM+' (esperado 2026-5)');
-T('swipe vertical (no cambia)',()=>{swipe(20,180);});
-OUT.push('tras swipe vertical: '+curY+'-'+curM+' (esperado 2026-5)');
-T('swipe con modal abierto (no cambia)',()=>{openOv('ov-mesing');swipe(-140,0);closeOv('ov-mesing');});
-OUT.push('tras swipe con modal: '+curY+'-'+curM+' (esperado 2026-5)');
+A('swipe der retrocede',curY===2026&&curM===5);
+T('swipe vertical',()=>{swipe(20,180);});
+A('swipe vertical no cambia',curM===5);
+T('swipe con modal',()=>{openOv('ov-mesing');swipe(-140,0);closeOv('ov-mesing');});
+A('swipe con modal abierto no cambia',curM===5);
+_swipeUntil=0;
 
-// ── CADENA <-> CAJA ────────────────────────────────────────
-_swipeUntil=0;// los tests de swipe corren antes: sin esto, el guardian se come el primer click de aqui
-const gJun=()=>JSON.parse(localStorage.getItem('app_2026_5')).gastos;
+// ── CADENA <-> CAJA ──
+const gJun=()=>gMes(2026,5);
 const iJun=()=>JSON.parse(localStorage.getItem('app_inc_2026_5')||'[]');
-T('junio limpio',()=>{curY=2026;curM=5;curScreen='gastos';renderAll();});
-OUT.push('A) gasto cadena antes de marcar: '+JSON.stringify(gJun().filter(g=>g.id.indexOf('g_cad_')===0)));
+T('junio limpio',()=>{curY=2026;curM=5;curScreen='mes';renderAll();});
 const k1=getCPagos()[0].key,k2=getCPagos()[1].key;
 T('marcar aporte 1',()=>{tCadena(k1);});
-OUT.push('B) tras marcar 1: '+JSON.stringify(gJun().filter(g=>g.id.indexOf('g_cad_')===0).map(g=>[g.name,g.amount,g.paid,g.cat])));
-OUT.push('B2) aviso anti-duplicado abierto: '+document.getElementById('ov-confirm').classList.contains('open')+' · texto="'+document.getElementById('ct').textContent+'" · boton="'+document.getElementById('cok').textContent+'"');
-T('aceptar borrar el gasto manual',()=>{document.getElementById('cok').click();});
-OUT.push('B3) gastos de junio tras aceptar: '+gJun().map(g=>g.name+'='+g.amount).join(' | '));
+A('aporte marcado crea gasto derivado',gJun().filter(g=>g.id.indexOf('g_cad_')===0).length===1);
+A('aviso anti-duplicado',document.getElementById('ov-confirm').classList.contains('open')&&document.getElementById('cok').textContent==='Borrarlo');
+T('aceptar borrar el manual',()=>{document.getElementById('cok').click();});
+A('gasto manual "Cadena" borrado',!gJun().some(g=>g.id==='gman'));
+const qAntes=mesModelo().queda;
 T('marcar aporte 2',()=>{tCadena(k2);});
-OUT.push('C) tras marcar 2 (debe sumar): '+JSON.stringify(gJun().filter(g=>g.id.indexOf('g_cad_')===0).map(g=>[g.name,g.amount])));
-OUT.push('   calcT comprometido='+calcT().tc+' pagado='+calcT().paid);
-OUT.push('   fila no editable (lleva a Cobros): '+document.getElementById('s-gastos').innerHTML.includes("goTo(&quot;cadena&quot;)")+'/'+document.getElementById('s-gastos').innerHTML.includes("goTo('cadena')"));
+A('marcar un aporte NO cambia Te queda (ya estaba en Falta)',mesModelo().queda===qAntes,mesModelo().queda+' vs '+qAntes);
+A('gasto derivado suma 300.000',gJun().find(g=>g.id==='g_cad_cadA').amount===300000);
 T('desmarcar los dos',()=>{tCadena(k1);tCadena(k2);});
-OUT.push('D) tras desmarcar todo (debe desaparecer): '+JSON.stringify(gJun().filter(g=>g.id.indexOf('g_cad_')===0)));
-T('re-marcar 1',()=>{tCadena(k1);if(document.getElementById('ov-confirm').classList.contains('open'))closeOv('ov-confirm');});
-OUT.push('E) idempotencia (3 renders seguidos): '+[1,2,3].map(()=>{renderAll();return gJun().filter(g=>g.id.indexOf('g_cad_')===0).length;}).join(','));
-
-// POZO: turnoMes 3 de cadA => mes 3 = agosto 2026 (inicio junio)
+A('desmarcar todo borra el derivado',!gJun().some(g=>g.id.indexOf('g_cad_')===0));
+T('marcar todo desde Mi mes',()=>{renderAll();clickChk('cad','cadA');if(document.getElementById('ov-confirm').classList.contains('open'))closeOv('ov-confirm');});
+A('check de la fila marca los 4 aportes',getCPagos().every(r=>r.paid));
+A('cadena completa pasa a Ya pagado',mesModelo().salen.find(r=>r.k==='cad').paid===true);
+T('desmarcar todo desde Mi mes',()=>{clickChk('cad','cadA');});
+A('check otra vez desmarca los 4',getCPagos().every(r=>!r.paid));
+A('idempotencia: 3 renders no duplican',[1,2,3].map(()=>{renderAll();return gJun().filter(g=>g.id.indexOf('g_cad_')===0).length;}).join(',')==='0,0,0');
 T('ir a agosto (turno propio)',()=>{curY=2026;curM=7;renderAll();});
 const iAgo=()=>JSON.parse(localStorage.getItem('app_inc_2026_7')||'[]');
-OUT.push('F) ingreso pozo agosto: '+JSON.stringify(iAgo().map(i=>[i.id,i.desc,i.monto,i.cat])));
-OUT.push('   totalIngresos agosto='+totalIngresos());
-T('render x3 no duplica',()=>{renderAll();renderAll();renderAll();});
-OUT.push('G) ingresos agosto tras 3 renders (debe ser 1): '+iAgo().length);
-OUT.push('   pozo no borrable a mano: '+!/data-id="inc_cad_/.test(document.getElementById('s-gastos').innerHTML));
-T('mover turno propio a mes 4 y guardar',()=>{const cs=getCadenas();cs[0].posiciones[0].turnoMes=4;aplicarCadenas(cs);});
-OUT.push('H) agosto tras mover turno (debe quedar 0): '+iAgo().length+' · septiembre: '+JSON.parse(localStorage.getItem('app_inc_2026_8')||'[]').length);
+A('pozo de agosto entra como ingreso',iAgo().length===1&&iAgo()[0].cat==='Cadena');
+T('render x3',()=>{renderAll();renderAll();renderAll();});
+A('pozo no se duplica',iAgo().length===1);
+T('mover turno a mes 4',()=>{const cs=getCadenas();cs[0].posiciones[0].turnoMes=4;aplicarCadenas(cs);});
+A('el pozo se mueve a septiembre',iAgo().length===0&&JSON.parse(localStorage.getItem('app_inc_2026_8')||'[]').length===1);
 T('borrar cadenas',()=>{aplicarCadenas([]);});
-OUT.push('I) tras borrar cadena -> ingresos ago='+iAgo().length+' · gasto cadena jun='+gJun().filter(g=>g.id.indexOf('g_cad_')===0).length+' (curM='+curM+')');
-T('junio tras borrar cadena',()=>{curY=2026;curM=5;renderAll();});
-OUT.push('J) gasto huerfano limpiado en junio: '+gJun().filter(g=>g.id.indexOf('g_cad_')===0).length+' (debe 0)');
+A('borrar cadena limpia pozo',iAgo().length===0);
 
-// ── MODOS DE MES ───────────────────────────────────────────
-// el bloque anterior borro las cadenas: se vuelve a sembrar una para probar los modos
-T('resembrar cadena',()=>{setCadenas([{id:'cadA',nombre:'Cadena oficina',valorCuota:150000,frecuencia:'quincenal',dias:[5,20],diaPago:25,puestosGrupo:12,salenPorPeriodo:2,mesInicio:5,anioInicio:2026,posiciones:[{id:'pA',tipo:'propio',miSplit:1,conQuien:'',turnoMes:3,montoPozo:0}]}]);});
-T('modos de cadena',()=>{curY=2026;curM=7;curScreen='cadena';_cobTab='cadena';renderAll();});
-['curso','anticipado','vencido'].forEach(mo=>{
-  const cs=getCadenas();cs[0].modoPago=mo;aplicarCadenas(cs);
-  renderAll();
-  const h=document.getElementById('s-cadena').innerHTML;
-  const RX=(s,f)=>new RegExp(s,f);
-  const chips=(h.match(RX('<div class="pmes">([a-zA-Z]{3})</div>','g'))||[]).map(x=>x.replace(RX('<[^>]*>','g'),''));
-  const frase=(h.match(RX('los aportes de Agosto se pagan en [A-Za-z]+'))||(h.match(RX('Mes en curso[^<]*'))||['']))[0];
-  OUT.push('K) cadena modo '+mo+': chips=['+chips.join(',')+'] · "'+frase+'"');
-});
-T('modo curso: aviso de arranque',()=>{const cs=getCadenas();cs[0].modoPago='anticipado';aplicarCadenas(cs);curY=2026;curM=4;renderAll();});
-OUT.push('L) mayo (fuera de rango, anticipado): '+((document.getElementById('s-cadena').innerHTML.match(new RegExp('el primer aporte se paga el [0-9]+ de [A-Za-z]+ [0-9]+'))||[''])[0]));
-
-['anticipado','curso','vencido'].forEach(mo=>{
-  const c=gCfgApp();c.modoMes=mo;sCfgApp(c);
-  curY=2026;curM=8;curScreen='gastos';renderAll();// septiembre = futuro
-  const h=document.getElementById('s-gastos').innerHTML;
-  OUT.push('M) gastos modo '+mo+': "'+((h.match(new RegExp('Estos gastos se pagan en [A-Za-z ]+'))||[''])[0])+'" · mesPago='+JSON.stringify(mesPago(2026,8)));
-});
-T('config modal 3 modos',()=>{const c=gCfgApp();c.modoMes='curso';sCfgApp(c);openCfgModal();});
-OUT.push('N) toggle activo: ant='+document.getElementById('cfg-m-ant').classList.contains('on')+' cur='+document.getElementById('cfg-m-cur').classList.contains('on')+' ven='+document.getElementById('cfg-m-ven').classList.contains('on'));
-OUT.push('   tip="'+document.getElementById('cfg-modo-tip').textContent.slice(0,60)+'..."');
-T('guardar cfg con curso',()=>{saveCfg();});
-OUT.push('O) modoMes guardado: '+gCfgApp().modoMes);
-T('config cadena: modo visible',()=>{openCadConf();});
-OUT.push('P) ov-cc tiene los 3 botones: '+['⏮️ Anticipado','📅 En curso','⏭️ Vencido'].every(t=>document.getElementById('cc-body').innerHTML.includes(t))+' · ayuda="'+document.getElementById('cc-body').innerHTML.includes('los entregas en')+'"');
-T('cerrar cc',()=>closeOv('ov-cc'));
+// ── FILAS SUGERIDAS (mes actual real) ──
+T('mes actual',()=>{const h=new Date();curY=h.getFullYear();curM=h.getMonth();renderAll();});
+M=mesModelo();
+const vtc=M.salen.find(r=>r.k==='vtc');
+A('cuota de la Visa sugerida en Por pagar',vtc&&vtc.amt===Math.min(200000,tcDeuda(gTcs()[0])),vtc&&vtc.amt);
+A('la cuota sugerida cuenta en Falta',M.falta>=200000);
+const deuda0=tcDeuda(gTcs()[0]);
+T('marcar la cuota sugerida',()=>{clickChk('vtc','tc1');});
+A('cuota pagada: baja la deuda',tcDeuda(gTcs()[0])===deuda0-Math.min(200000,deuda0));
+A('cuota pagada: ya no se sugiere',!mesModelo().salen.some(r=>r.k==='vtc'));
+T('meta con ahorro mensual',()=>{const ms=gMetas();ms[0].aporte=300000;sMetas(ms);renderAll();});
+A('ahorro de la meta sugerido',mesModelo().salen.some(r=>r.k==='vmeta'&&r.amt===300000));
+const tot0=gMetas()[0].total;
+T('tocar la fila abre el formulario lleno',()=>{clickRow('vmeta','mm');});
+A('formulario prellenado con ahorro',document.getElementById('ov-mov').classList.contains('open')&&document.getElementById('mv-mnt').value==='300000');
+T('guardar ahorro desde el formulario',()=>{saveMov();});
+A('la meta sube 300.000',gMetas()[0].total===tot0+300000,gMetas()[0].total);
+A('ahorro ya no se sugiere',!mesModelo().salen.some(r=>r.k==='vmeta'));
 
 const d=document.createElement('pre');d.id='TESTOUT';
 d.textContent='=== OUT ===\\n'+OUT.join('\\n')+'\\n=== ERRS ('+ERRS.length+') ===\\n'+ERRS.join('\\n');
