@@ -115,7 +115,8 @@ cartera_prerestore   (sin prefijo app_) snapshot de seguridad antes de un restor
 - `renderAll()` redibuja la pantalla activa; llamarla tras cualquier mutación de estado
 - Getters/setters de storage: `gD()/sD()` (mes actual), `gM()/sM()` (mercado), `gTc()/sTc()`, `gMeta()/sMeta()`, `getCadenas()/setCadenas()` (cadenas v2), `gInc()/sInc()` (ingresos extra), `gCfgApp()/sCfgApp()` (config usuario). Helpers cadena: `getCPagos()` (filas derivadas del mes), `cobrosMes()` (pozos del mes), `cadDuracion/cadIdxMes/cadPozo`. Salario por mes: `NETOm(y,m)`. Deuda: `deudaInfo()/tasaMensualDe()` (tasa MENSUAL). Metas: `gMetas()/sMetas()/totalAhorrado()/ensureMeta()`. Ahorro por mes: `addAhorroMes()/savMes()/rachaAhorro()`. La edición de tarjeta y metas vive en modales que se abren desde **Ajustes** (rAjustes); `rResumen` es solo lectura.
 - Modales: overlays con ids `ov-*`, abrir/cerrar con `openOv(id)/closeOv(id)`
-- Botones flotantes (FAB): se crean dinámicamente en cada render y se destruyen en `renderAll()` — 58px, solo icono SVG: el + de Mi mes abre `ov-mov`; el ✓ verde de Mercado guarda la lista como gasto
+- **Agregar:** el + vive en la barra de abajo (`#nav-add`, a la derecha) y abre `ov-mov` desde cualquier pestaña. Antes era flotante y tapaba los montos de las filas: no volver a ponerlo flotante.
+- Único botón flotante (FAB): el ✓ verde de Mercado (guarda la lista como gasto). Se crea en cada render y `renderAll()` lo destruye.
 - Navegación de meses: limitada entre el mes de inicio de operación (`navFloor()` ← `inicioOp()`) y **mes actual+2**; `goToday()` vuelve al actual. Además de los botones ‹ › se puede **deslizar horizontalmente** (initSwipeMes: solo en mes/resumen/cadena, ignora modales y gestos que arranquen sobre un control)
 - `showConfirm(t,s,cb,okLabel)`: sin `okLabel` el botón dice "Eliminar" en rojo; con `okLabel` es un botón azul de acción normal
 
@@ -149,4 +150,6 @@ Requieren Node 18+ y Chrome/Edge instalado. Los tres corren en headless sobre el
 - **Modo de mes retirado (v10).** Solo cambiaba etiquetas y confundía. Manda la convención mes-que-cubre. Si alguna vez se pide que la plata se descuente de verdad del mes anterior, es un cambio profundo: decidirlo explícitamente.
 - Los modales de tarjetas, metas, cadena, préstamos y mercado todavía arman `onclick` con ids dentro (patrón viejo). Migrarlos a `data-*` como Mi mes.
 - Las capturas de `docs/` y el README son de la versión anterior (v9): regenerarlas.
+- El FAB ✓ de Mercado puede tapar el campo de precio de la última fila al hacer scroll (mismo problema que tenía el +).
+- "Cargar N gastos que se repiten" mira 12 meses atrás aunque estén antes del mes de inicio: tras mover el inicio puede ofrecer gastos de la etapa anterior. Evaluar si limitarlo a `inicioOp()`.
 - Ampliar cobertura: los 3 tests cubren los flujos principales, pero no mercado→gasto, Drive/import-export ni PIN.

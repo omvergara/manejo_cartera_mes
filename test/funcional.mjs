@@ -64,6 +64,10 @@ A('la tarjeta muestra el numero grande',H('s-mes').includes(fmt(3186000)));
 A('mes pasado: sin filas sugeridas',!M.salen.some(r=>r.sug));
 A('cadena aparece una sola vez como fila',(H('s-mes').split('Cadena · Cadena oficina').length-1)===1);
 A('el saludo usa el nombre',H('s-mes').includes('Hola, Mau'));
+A('el + vive en la barra, no flota sobre las filas',!!document.getElementById('nav-add')&&!document.querySelector('.fab'));
+T('el + de la barra abre el formulario',()=>{document.getElementById('nav-add').click();});
+A('formulario abierto desde la barra',document.getElementById('ov-mov').classList.contains('open'));
+T('cerrar',()=>closeOv('ov-mov'));
 A('el salario de junio dice que llego el 25 de mayo',H('s-mes').includes('Llegó el 25 de mayo'));
 A('nomina del 25 de octubre = plata de noviembre',salarioOrigen(2026,10).indexOf('25 de octubre')>0,salarioOrigen(2026,10));
 A('nomina de diciembre llega en noviembre (futuro)',salarioOrigen(2027,0).indexOf('25 de diciembre 2026')>0,salarioOrigen(2027,0));
@@ -149,6 +153,9 @@ A('resumen sin meses antes del inicio',!H('s-resumen').includes('>Ene<')&&!H('s-
 A('resumen compara con junio',H('s-resumen').includes('que en junio'));
 A('el junio de Resumen es el mismo Te queda de Mi mes junio',H('s-resumen').includes(fmt(mesModeloDe(2026,5).queda)),fmt(mesModeloDe(2026,5).queda));
 A('resumen muestra cuando quedas a paz con la Visa',H('s-resumen').includes('quedas a paz en'));
+T('turno fuera de la vigencia de la cadena',()=>{const cs=getCadenas();cs[0].posiciones=[{id:'px',tipo:'propio',miSplit:1,turnoMes:40,montoPozo:0}];setCadenas(cs);renderAll();});
+A('un turno despues de que la cadena termina no sale como proximo pozo',!H('s-resumen').includes('Tu próximo pozo'));
+T('restaurar cadena',()=>{setCadenas([{id:'cadA',nombre:'Cadena oficina',valorCuota:150000,frecuencia:'quincenal',dias:[5,20],diaPago:25,puestosGrupo:12,salenPorPeriodo:2,mesInicio:5,anioInicio:2026,posiciones:[{id:'pA',tipo:'propio',miSplit:1,conQuien:'',turnoMes:3,montoPozo:0},{id:'pB',tipo:'compartido',miSplit:0.5,conQuien:'Ana',turnoMes:5,montoPozo:0}]}]);renderAll();});
 
 // ── AJUSTES Y MODULOS ──
 T('ajustes',()=>goTo('ajustes'));
