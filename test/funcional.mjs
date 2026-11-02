@@ -70,7 +70,7 @@ A('nomina de diciembre llega en noviembre (futuro)',salarioOrigen(2027,0).indexO
 
 // ── INGRESO BASE / RECURRENTES / HORMIGA ──
 T('julio',()=>{curY=2026;curM=6;renderAll();});
-A('julio muestra salario editado a mano',H('s-mes').includes('Editado a mano'));
+A('julio muestra salario editado a mano',H('s-mes').includes('editado a mano'));
 A('julio entro = 3.200.000 (neto manual)',mesModelo().entro===3200000,mesModelo().entro);
 T('openMesNeto desde la fila Salario',()=>{clickRow('neto','neto');});
 A('modal de ingreso del mes trae 3.200.000',document.getElementById('mi-neto').value==='3200000');
@@ -232,6 +232,59 @@ A('formulario prellenado con ahorro',document.getElementById('ov-mov').classList
 T('guardar ahorro desde el formulario',()=>{saveMov();});
 A('la meta sube 300.000',gMetas()[0].total===tot0+300000,gMetas()[0].total);
 A('ahorro ya no se sugiere',!mesModelo().salen.some(r=>r.k==='vmeta'));
+
+// ── TARJETA: cada movimiento sube o baja la deuda exacto ──
+const TC=()=>tcDeuda(gTcs().find(t=>t.id==='tc1'));
+const gNow=()=>gD().gastos;
+let base=TC();
+T('compra 100.000',()=>{openAdd();document.getElementById('mv-nom').value='Compra A';document.getElementById('mv-mnt').value='100000';mvPay('tc1');saveMov();});
+const cA=gNow().find(g=>g.name==='Compra A');
+A('compra: deuda +100.000',TC()===base+100000,TC()-base);
+A('compra: no toca la plata del mes',!mesModelo().salen.some(r=>r.id===cA.id));
+T('editar compra a 150.000',()=>{openEdit(cA.id);document.getElementById('mv-mnt').value='150000';saveMov();});
+A('editar compra: deuda +150.000 (no 250.000)',TC()===base+150000,TC()-base);
+T('pasar la compra a efectivo',()=>{openEdit(cA.id);mvPay('ef');saveMov();});
+A('compra pasada a efectivo: la deuda vuelve',TC()===base,TC()-base);
+A('y ahora sí sale de la plata del mes',mesModelo().salen.some(r=>r.id===cA.id));
+T('volver a tarjeta y borrar',()=>{openEdit(cA.id);mvPay('tc1');saveMov();confDel(cA.id,'Compra A');document.getElementById('cok').click();});
+A('compra borrada: deuda vuelve exacto',TC()===base,TC()-base);
+T('pago de tarjeta SIN marcar',()=>{openAdd();document.getElementById('mv-nom').value='Pago B';document.getElementById('mv-mnt').value='80000';mvCat('__abono');document.getElementById('mv-tcp').value='tc1';document.getElementById('mv-paid').checked=false;saveMov();});
+const pB=gNow().find(g=>g.name==='Pago B');
+A('pago sin marcar: no baja la deuda todavía',TC()===base,TC()-base);
+A('pago sin marcar: queda en Por pagar',mesModelo().salen.some(r=>r.id===pB.id&&!r.paid));
+T('marcar el pago',()=>{tPaid(pB.id);});
+A('pago marcado: deuda −80.000',TC()===base-80000,TC()-base);
+A('pago marcado: sale de la plata del mes',mesModelo().salen.some(r=>r.id===pB.id&&r.paid));
+T('desmarcar el pago',()=>{tPaid(pB.id);});
+A('pago desmarcado: la deuda vuelve',TC()===base,TC()-base);
+T('marcar y borrar el pago',()=>{tPaid(pB.id);confDel(pB.id,'Pago B');document.getElementById('cok').click();});
+A('pago borrado: la deuda vuelve',TC()===base,TC()-base);
+T('mercado con tarjeta',()=>{const it=gM();it[0].on=true;it[0].price=45000;sM(it);openMrc();mrcSetTipo('tarjeta');document.getElementById('mrc-tcid').value='tc1';saveMrcGasto();});
+A('mercado con tarjeta: deuda +45.000',TC()===base+45000,TC()-base);
+T('reiniciar: deuda de hoy segun extracto = 1.234.567',()=>{openTcCfg();updTc('tc1','deuda','1234567');closeOv('ov-tccfg');});
+A('deuda hoy queda exacta sin contar doble las compras viejas',TC()===1234567,TC());
+T('compra despues del ajuste',()=>{openAdd();document.getElementById('mv-nom').value='Compra C';document.getElementById('mv-mnt').value='10000';mvPay('tc1');saveMov();});
+A('las compras siguen sumando sobre la deuda ajustada',TC()===1244567,TC());
+
+// ── CADENA: montos tuyos, pozo y caja ──
+T('cadena con puesto compartido',()=>{curY=2026;curM=5;aplicarCadenas([{id:'cadZ',nombre:'Z',valorCuota:100000,frecuencia:'quincenal',dias:[5,20],diaPago:25,puestosGrupo:10,salenPorPeriodo:2,mesInicio:5,anioInicio:2026,posiciones:[{id:'z1',tipo:'propio',miSplit:1,turnoMes:2,montoPozo:0},{id:'z2',tipo:'compartido',miSplit:0.5,turnoMes:3,montoPozo:0}]}]);renderAll();});
+const rz=mesModelo().salen.find(r=>r.k==='cad'&&r.id==='cadZ');
+A('aporte del mes = 2×100.000 propio + 2×50.000 compartido = 300.000',rz&&rz.amt===300000,rz&&rz.amt);
+A('pozo propio quincenal (10 puestos, salen 2) = 1.000.000',cadPozo(getCadenas()[0],getCadenas()[0].posiciones[0])===1000000);
+A('pozo compartido = la mitad',cadPozo(getCadenas()[0],getCadenas()[0].posiciones[1])===500000);
+A('pozo mensual con 1 que sale = cuota × puestos',cadPozo({valorCuota:100000,puestosGrupo:10,frecuencia:'mensual',dias:[5],salenPorPeriodo:1},{miSplit:1})===1000000);
+A('pozo quincenal con 1 que sale = el doble',cadPozo({valorCuota:100000,puestosGrupo:10,frecuencia:'quincenal',dias:[5,20],salenPorPeriodo:1},{miSplit:1})===2000000);
+const q0=mesModelo().queda,p0=mesModelo().pagado;
+T('marcar 1 aporte compartido',()=>{const k=getCPagos().find(r=>r.key.indexOf('|z2|d5')>0).key;tCadena(k);if(document.getElementById('ov-confirm').classList.contains('open'))closeOv('ov-confirm');});
+A('aporte compartido mueve 50.000 de Falta a Pagado',mesModelo().pagado===p0+50000&&mesModelo().queda===q0,(mesModelo().pagado-p0)+' / '+(mesModelo().queda-q0));
+A('el gasto derivado vale lo tuyo (50.000)',gNow().find(g=>g.id==='g_cad_cadZ').amount===50000);
+T('julio: cobras el pozo propio',()=>{curY=2026;curM=6;renderAll();});
+A('pozo de julio entra a Entro como 1.000.000',gInc().some(i=>i.id==='inc_cad_cadZ_z1'&&i.monto===1000000));
+T('agosto: pozo compartido',()=>{curY=2026;curM=7;renderAll();});
+A('pozo compartido entra como 500.000',gInc().some(i=>i.id==='inc_cad_cadZ_z2'&&i.monto===500000));
+T('salario siempre dice de qué nómina viene, aunque esté editado',()=>{curY=2026;curM=6;renderAll();});
+A('julio editado a mano igual dice que llegó el 25 de junio',H('s-mes').includes('Llegó el 25 de junio')&&H('s-mes').includes('editado a mano'));
+A('la cuenta de arriba también lo dice',H('s-mes').includes('Tu salario: llegó el 25 de junio'));
 
 const d=document.createElement('pre');d.id='TESTOUT';
 d.textContent='=== OUT ===\\n'+OUT.join('\\n')+'\\n=== ERRS ('+ERRS.length+') ===\\n'+ERRS.join('\\n');

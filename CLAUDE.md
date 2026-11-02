@@ -54,6 +54,8 @@ app_ccfg             cadenas (v2): {v:2, cadenas:[{id,nombre,valorCuota,frecuenc
                        fecha de cada aporte y la frase del encabezado; NO mueve el mes del gasto derivado ni del pozo
                        (siguen en el mes de la cadena, según la convención de mes de la app). diaPago quedó solo como
                        referencia de "día en que tú entregas tu cuota".
+                     · POZO estimado (cadPozo) = cuota × puestos × aportes/mes (1 mensual, 2 quincenal) ÷ salen por mes × miSplit,
+                       salvo que la posición tenga montoPozo.
                      · VIGENCIA: la cadena solo corre entre mesInicio/anioInicio y cadFin() (= inicio + cadDuracion − 1).
                        Fuera de ese rango getCPagos() no devuelve filas (no se puede marcar nada) y cadenaBody explica por qué.
                        El timeline muestra qué puestos del GRUPO cobran cada mes (cadPuestosDeMes), no solo los del usuario.
@@ -64,6 +66,9 @@ app_prestamos        préstamos que YO hago: [{id,persona,capital,meses,interes,
 app_mrc              lista mercado [{id,name,icon,cat,on,price?}] · gM() merge no-destructivo con DM. Al guardar (💾) crea un gasto "Mercado" con el total de precios y pregunta efectivo/tarjeta (saveMrcGasto → reconcileGasto)
 app_tcs              tarjetas MÚLTIPLES: [{id,nombre,base,cuota,tasa}] (migra de app_tc; saldo viejo→base). tasa = % MENSUAL.
                      · DEUDA DERIVADA (tcDeuda): base + compras − abonos de gastos (no se muta ni se pisa al editar). gasto.tcId elige tarjeta.
+                     · La app NO ve intereses ni cuota de manejo: el usuario escribe la "Deuda hoy" del extracto
+                       (updTc(id,'deuda',v)) y se recalcula base = deuda − compras + pagos registrados (base puede ser negativa).
+                       NUNCA pedir el saldo del extracto como base: contaría doble las compras ya cargadas.
                      · deudaInfo() = amortización real mes a mes (último pago parcial); interés correcto.
 app_tc               (LEGACY) tarjeta única antigua — se migra a app_tcs
 app_metas            metas de ahorro v2: [{id,nombre,icono,total,meta,aporte?,plazoMeses?}] · aporte = ahorro mensual que
