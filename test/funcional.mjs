@@ -64,6 +64,9 @@ A('la tarjeta muestra el numero grande',H('s-mes').includes(fmt(3186000)));
 A('mes pasado: sin filas sugeridas',!M.salen.some(r=>r.sug));
 A('cadena aparece una sola vez como fila',(H('s-mes').split('Cadena · Cadena oficina').length-1)===1);
 A('el saludo usa el nombre',H('s-mes').includes('Hola, Mau'));
+A('el salario de junio dice que llego el 25 de mayo',H('s-mes').includes('Llegó el 25 de mayo'));
+A('nomina del 25 de octubre = plata de noviembre',salarioOrigen(2026,10).indexOf('25 de octubre')>0,salarioOrigen(2026,10));
+A('nomina de diciembre llega en noviembre (futuro)',salarioOrigen(2027,0).indexOf('25 de diciembre 2026')>0,salarioOrigen(2027,0));
 
 // ── INGRESO BASE / RECURRENTES / HORMIGA ──
 T('julio',()=>{curY=2026;curM=6;renderAll();});

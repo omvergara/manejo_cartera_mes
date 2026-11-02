@@ -1245,6 +1245,16 @@ function metaAporte(mt){
   if(+mt.plazoMeses>0&&falta>0)return Math.ceil(falta/mt.plazoMeses);
   return 0;
 }
+// De qué nómina sale la plata del mes (y,m), en palabras. Convención mes-que-cubre: si te pagan
+// del 15 en adelante, ese pago cubre el mes SIGUIENTE (la del 25 de octubre es la plata de noviembre);
+// si te pagan antes del 15, cubre el mismo mes. Sin esto, ver en noviembre la plata de octubre parece un descuadre.
+function salarioOrigen(y,m){
+  const hoy=new Date();hoy.setHours(0,0,0,0);
+  const frase=(d,o)=>{const f=new Date(o.y,o.m,Math.min(d,new Date(o.y,o.m+1,0).getDate()));return(f<=hoy?'Llegó':'Llega')+' el '+f.getDate()+' de '+MNS[o.m].toLowerCase()+(o.y!==y?' '+o.y:'');};
+  const de=d=>d>=15?addMes(y,m,-1):{y,m};
+  if(!ES_QUINCENAL())return frase(NDAY(),de(NDAY()));
+  return frase(NDAY1(),de(NDAY1()))+' y '+frase(NDAY2(),de(NDAY2())).replace(/^Lleg[óa] /,'');
+}
 function subGasto(g){
   const p=[];
   if(g.hormiga)p.push(((g.hitems||[]).length||g.hcount||0)+' registros');
@@ -1313,7 +1323,7 @@ function rMes(){
   const neg=M.queda<0;
   const antes=antesDeInicio(curY,curM);
   const nota=notaMes(curY,curM),manual=netoEsManual(curY,curM);
-  const netoSb=antes?`Antes de ${inicioOpLbl()}: va en $0`:([manual?'Editado a mano':'Toca para cambiarlo este mes',nota].filter(Boolean).join(' · '));
+  const netoSb=antes?`Antes de ${inicioOpLbl()}: va en $0`:([manual?'Editado a mano':salarioOrigen(curY,curM),nota].filter(Boolean).join(' · '));
   const incRows=M.incs.map(i=>`<div class="row" data-act="open" data-k="inc" data-id="${esc(i.id)}"><div class="dot-in" aria-hidden="true">+</div><div class="row-inf"><div class="row-nm">${esc(i.desc)}</div><div class="row-sb">${esc(esIngresoPozo(i)?'Pozo de tu cadena (automático)':(i.cat||'Otros'))}</div></div><div class="row-amt in">${fmt(i.monto)}</div></div>`).join('');
   const recN=recurrentesDisponibles().length;
   const nMrc=modOn('mercado')?gM().filter(x=>x.on).length:0;
